@@ -2,6 +2,8 @@
 *.d
 build/
 .dep/
+.cproject
+.project
 
 # Object files
 *.o
