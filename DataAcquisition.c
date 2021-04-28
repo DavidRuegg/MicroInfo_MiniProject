@@ -4,13 +4,16 @@
  *  Created on: 23 avr. 2021
  *      Author: druegg
  */
+#include <stdint.h>
+
+#include <DataAcquisition.h>
 
 #include <sensors/proximity.h>
-#include <DataAcquisition.h>
 #include <leds.h>
 
 void scan_maze_cell(uint8_t* maze_cell){
-	//int32_t proximity_values[PROXIMITY_NB_CHANNELS]={0};
+	*maze_cell = 0;
+	set_led(NUM_LED,0);
 	for(uint8_t i=0 ; i<PROXIMITY_NB_CHANNELS ; i++){
 		if (get_prox(i) > PROXIMITY_THRESHOLD){
 			switch (i) {
