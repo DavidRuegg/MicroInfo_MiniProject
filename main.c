@@ -2,14 +2,17 @@
 #include "ch.h"
 #include "memory_protection.h"
 
+#include <sensors/proximity.h>
+#include <camera/dcmi_camera.h>
+#include <camera/po8030.h>
+#include <motors.h>
+#include <leds.h>
+#include <spi_comm.h>
+
 #include <main.h>
 #include <DataAcquisition.h>
 #include <DataProcess.h>
 #include <SystemControl.h>
-
-#include <sensors/proximity.h>
-#include <motors.h>
-#include <leds.h>
 
 /*** GLOBAL VARIABLES ***/
 messagebus_t bus;
@@ -29,24 +32,28 @@ int main(void){
 	// init general bus message
 	messagebus_init(&bus, &bus_lock, &bus_condvar);
 
-	// init proximity sensors
-	proximity_start();
-	// init the motors
-	motors_init();
-	control_motor_start();
+	dcmi_start();
+	po8030_start();
 
+	motors_init();
+
+	proximity_start();
+
+	spi_comm_start();
+
+	control_motor_start();
+	capture_image_start();
+	process_image_start();
 
 	/*** INTERNAL VARIABLES ***/
 	uint8_t actual_cell = 0;
 
 	chThdSleepMilliseconds(2000);
-	scan_maze_cell(&actual_cell);
+	//scan_maze_cell(&actual_cell);
 
-	/* Infinite loop. */
+	/*** Infinite loop. ***/
 	while (1) {
-
-
-
+///*
 		chBSemWait(&motor_ready_sem);
 		scan_maze_cell(&actual_cell);
 		if(!(actual_cell & WALL_B)){
@@ -67,11 +74,8 @@ int main(void){
 			chBSemWait(&motor_ready_sem);
 			go_next_cell(ONE_CELL);
 		}
-
-		// Wait 1s
-		//chThdSleepMilliseconds(2000);
+//*/
 		chThdYield();
-
 	}
 }
 

@@ -13,8 +13,6 @@ CSRC += ./main.c \
 		./DataAcquisition.c\
 		./DataProcess.c\
 		./SystemControl.c\
-		./pi_regulator.c \
-		./process_image.c \
 
 #Header folders to include
 INCDIR += 

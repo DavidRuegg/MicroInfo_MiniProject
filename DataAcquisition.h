@@ -21,14 +21,15 @@
 #define IR6 5
 #define IR7 6
 #define IR8 7
-#define PROXIMITY_THRESHOLD 150 // experimental value
+#define PROXIMITY_THRESHOLD 100 // experimental value
+
+
+#define IMAGE_BUFFER_SIZE 200
+
+
 
 void scan_maze_cell(uint8_t* maze_cell);
 
-/*
-typedef struct {
-	uint8_t	maze_cell
-} maze_cell_t;
-*/
+void capture_image_start(void);
 
 #endif /* DATAACQUISITION_H_ */

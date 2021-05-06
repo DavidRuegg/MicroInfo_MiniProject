@@ -7,8 +7,9 @@
 
 #include <stdlib.h>
 
-#include <SystemControl.h>
 #include <motors.h>
+
+#include <SystemControl.h>
 
 /*** GLOBAL VARIABLES ***/
 BSEMAPHORE_DECL(motor_ready_sem, FALSE);
@@ -20,8 +21,7 @@ static int16_t speed_left = 0;
 static int16_t speed_right = 0;
 
 
-
-void turn(int16_t angle){
+void turn(int32_t angle){
 	left_motor_set_pos(0);
 	right_motor_set_pos(0);
 
@@ -90,7 +90,7 @@ static THD_FUNCTION(ControlMotor, arg) {
 		}
 
 		//20Hz
-		chThdSleepUntilWindowed(time, time + MS2ST(50));
+		chThdSleepUntilWindowed(time, time + MS2ST(100));
 
 	}
 }

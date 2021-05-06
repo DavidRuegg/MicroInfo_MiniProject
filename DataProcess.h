@@ -16,5 +16,6 @@
 #define WEST	3
 
 void change_frame_reference(uint8_t* maze_cell, uint8_t orientation);
+void process_image_start(void);
 
 #endif /* DATAPROCESS_H_ */
