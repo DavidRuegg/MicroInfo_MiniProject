@@ -21,6 +21,10 @@ void change_frame_reference(uint8_t* maze_cell, uint8_t orientation){
 	*maze_cell = (*maze_cell & 0xF0) | maze_cell_tmp2;
 }
 
+void reset_orientation(){
+	orientation = 0;
+}
+
 int16_t left_wall_follower(uint8_t cell){			//	lwf algorithm
 
 	if(!(cell & WALL_LEFT_B)){						//	turn left possible --> turn left
@@ -54,5 +58,7 @@ int16_t pledge_algorithm(uint8_t cell){
 	}
 
 }
+
+
 
 

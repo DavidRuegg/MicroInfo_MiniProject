@@ -10,6 +10,7 @@
 #include <sensors/proximity.h>
 #include <motors.h>
 #include <leds.h>
+#include <selector.h>
 
 /*** GLOBAL VARIABLES ***/
 messagebus_t bus;
@@ -37,16 +38,19 @@ int main(void){
 
 	uint8_t actual_cell = 0;
 
-	chThdSleepMilliseconds(2000);
-
 	/* Infinite loop. */
 	while (1) {
 
-		move(PLEDGE_ALGORITHM, actual_cell);
-
-
-		// Wait 1s
-		//chThdSleepMilliseconds(2000);
+		if(get_selector() == POS_SEL_0){					//	selector = 0 --> lwf
+			chThdSleepMilliseconds(1500);
+			move(LWF_ALGORITHM, actual_cell);
+		}else if(get_selector() == POS_SEL_1){				//	selector = 1 --> pledge
+			chThdSleepMilliseconds(1500);
+			move(PLEDGE_ALGORITHM, actual_cell);
+		}else{
+			reset_orientation();
+			scan_maze_cell(&actual_cell);
+		}
 
 		chThdYield();
 	}

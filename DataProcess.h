@@ -16,6 +16,7 @@
 #define WEST	3
 
 void change_frame_reference(uint8_t* maze_cell, uint8_t orientation);
+void reset_orientation();
 int16_t left_wall_follower(uint8_t cell); 										// Return a direction in steps
 int16_t pledge_algorithm(uint8_t cell);											// or 0 if no need to turn
 
