@@ -10,6 +10,7 @@
 #include <sensors/proximity.h>
 #include <motors.h>
 #include <leds.h>
+#include <selector.h>
 
 /*** GLOBAL VARIABLES ***/
 messagebus_t bus;
@@ -35,43 +36,23 @@ int main(void){
 	motors_init();
 	control_motor_start();
 
-
-	/*** INTERNAL VARIABLES ***/
 	uint8_t actual_cell = 0;
-
-	chThdSleepMilliseconds(2000);
-	scan_maze_cell(&actual_cell);
 
 	/* Infinite loop. */
 	while (1) {
 
-
-
-		chBSemWait(&motor_ready_sem);
-		scan_maze_cell(&actual_cell);
-		if(!(actual_cell & WALL_B)){
-			chThdSleepMilliseconds(500);
-			set_body_led(42);
-		}else if(!(actual_cell & WALL_LEFT_B)){
-			turn(LEFT_TURN);
-			chBSemWait(&motor_ready_sem);
-			go_next_cell(ONE_CELL);
-		}else if(!(actual_cell & WALL_FRONT_B)){
-			go_next_cell(ONE_CELL);
-		}else if(!(actual_cell & WALL_RIGHT_B)){
-			turn(RIGHT_TURN);
-			chBSemWait(&motor_ready_sem);
-			go_next_cell(ONE_CELL);
+		if(get_selector() == POS_SEL_0){					//	selector = 0 --> lwf
+			chThdSleepMilliseconds(1500);
+			move(LWF_ALGORITHM, actual_cell);
+		}else if(get_selector() == POS_SEL_1){				//	selector = 1 --> pledge
+			chThdSleepMilliseconds(1500);
+			move(PLEDGE_ALGORITHM, actual_cell);
 		}else{
-			turn(BACKWARD_TURN);
-			chBSemWait(&motor_ready_sem);
-			go_next_cell(ONE_CELL);
+			reset_orientation();
+			scan_maze_cell(&actual_cell);
 		}
 
-		// Wait 1s
-		//chThdSleepMilliseconds(2000);
 		chThdYield();
-
 	}
 }
 
