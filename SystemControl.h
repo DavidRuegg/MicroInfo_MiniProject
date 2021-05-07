@@ -14,10 +14,12 @@
 #define STOP_SPEED				0
 #define NSTEP_ONE_REVOLUTION	1000
 #define MM_2_STEPS				7.68
-#define ONE_CELL 				875		// steps for one cell (experimental)
+#define ONE_CELL 				880 //875		// steps for one cell (experimental)
 #define DEGREE_2_STEPS			3.422
-#define LEFT_TURN				-301	// steps for 90 degree turn left (experimental)
-#define RIGHT_TURN				301 	// steps for 90 degree turn right (experimental)
+//#define LEFT_TURN				-301	// steps for 90 degree turn left (experimental)
+#define LEFT_TURN				-324	// steps for 90 degree turn left (experimental)
+//#define RIGHT_TURN				301 	// steps for 90 degree turn right (experimental)
+#define RIGHT_TURN				324 	// steps for 90 degree turn right (experimental)
 #define BACKWARD_TURN			648 	// steps for 180 degree turn (experimental)
 
 #define POSITION_NOT_REACHED	0

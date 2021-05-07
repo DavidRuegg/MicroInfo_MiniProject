@@ -90,11 +90,11 @@ static THD_FUNCTION(ControlMotor, arg) {
 		}
 
 		//20Hz
-		chThdSleepUntilWindowed(time, time + MS2ST(100));
+		chThdSleepUntilWindowed(time, time + MS2ST(50));
 
 	}
 }
 
 void control_motor_start(void){
-	chThdCreateStatic(waControlMotor, sizeof(waControlMotor), NORMALPRIO, ControlMotor, NULL);
+	chThdCreateStatic(waControlMotor, sizeof(waControlMotor), NORMALPRIO+1, ControlMotor, NULL);
 }

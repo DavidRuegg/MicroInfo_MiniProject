@@ -53,7 +53,10 @@ int main(void){
 
 	/*** Infinite loop. ***/
 	while (1) {
-///*
+/*
+		scan_maze_cell(&actual_cell);
+		chThdSleepMilliseconds(1000);
+*/
 		chBSemWait(&motor_ready_sem);
 		scan_maze_cell(&actual_cell);
 		if(!(actual_cell & WALL_B)){
@@ -74,8 +77,9 @@ int main(void){
 			chBSemWait(&motor_ready_sem);
 			go_next_cell(ONE_CELL);
 		}
-//*/
+
 		chThdYield();
+
 	}
 }
 
