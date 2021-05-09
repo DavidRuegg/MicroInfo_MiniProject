@@ -22,14 +22,11 @@
 
 #define POSITION_NOT_REACHED	0
 #define POSITION_REACHED       	1
-#define LWF_ALGORITHM			0
-#define PLEDGE_ALGORITHM		1
-
 
 
 void turn(int16_t angle);
 void go_next_cell(int16_t distance);
-void move(uint8_t algorithm, uint8_t actual_cell);
+void move(uint16_t direction);
 void control_motor_start(void);
 
 #endif /* SYSTEMCONTROL_H_ */
