@@ -16,7 +16,8 @@ void scan_maze_cell(uint8_t* maze_cell){
 	set_led(NUM_LED,0);
 	for(uint8_t i=0 ; i<PROXIMITY_NB_CHANNELS ; i++){
 		if (get_prox(i) > PROXIMITY_THRESHOLD){
-			switch (i) {
+			switch (i)
+			{
 			case IR1:
 				*maze_cell |= WALL_FRONT_B;
 				set_led(LED1, 1);

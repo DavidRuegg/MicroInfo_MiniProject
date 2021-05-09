@@ -21,7 +21,7 @@ void change_frame_reference(uint8_t* maze_cell, uint8_t orientation){
 	*maze_cell = (*maze_cell & 0xF0) | maze_cell_tmp2;
 }
 
-void reset_orientation(){
+void reset_orientation(void){
 	orientation = 0;
 }
 

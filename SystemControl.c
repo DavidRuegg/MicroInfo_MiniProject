@@ -98,18 +98,9 @@ static THD_FUNCTION(ControlMotor, arg) {
 	}
 }
 
-void move(uint8_t algorithm, uint8_t actual_cell){
+void move(uint16_t direction){
 
-	chBSemWait(&motor_ready_sem);
-	scan_maze_cell(&actual_cell);
-
-	uint16_t direction = 0;
-
-	if(algorithm == LWF_ALGORITHM){
-		direction = left_wall_follower(actual_cell);
-	}else if(algorithm == PLEDGE_ALGORITHM){
-		direction = pledge_algorithm(actual_cell);
-	}
+	chBSemWait(&motor_ready_sem);		// necessary so it don't do weird things... -_-'
 
 	if(!(direction == MOVE_FORWARD)){
 		turn(direction);
