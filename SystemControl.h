@@ -23,10 +23,35 @@
 #define POSITION_NOT_REACHED	0
 #define POSITION_REACHED       	1
 
-
+/**
+ * @brief	Set the position to reach for each motor and the speed
+ * 			for the e-puck to do a turn.
+ *
+ * @param angle		Value in steps corresponding to the number needed to do the turn,
+ * 					positive value to turn right, negative to turn left.
+ */
 void turn(int16_t angle);
+
+/**
+ * @brief	Set the position to reach for each motor and the speed
+ * 			for the e-puck to move forward for a certain distance.
+ *
+ * @param distance		Value in steps corresponding to the number needed to move the
+ * 						expected length.
+ */
 void go_next_cell(int16_t distance);
+
+/**
+ * @brief	Set the position to reach for each motor and the speed
+ * 			for the e-puck to turn and then move forward/only move forward
+ * 			for a fixed distance of one cell of the maze.
+ *
+ * @param direction		Value in steps corresponding to the number needed to do the turn,
+ * 						positive value to turn right, negative to turn left, if 0 only moves
+ * 						forward.
+ */
 void move(uint16_t direction);
+
 void control_motor_start(void);
 
 #endif /* SYSTEMCONTROL_H_ */

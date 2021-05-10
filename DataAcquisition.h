@@ -23,6 +23,15 @@
 #define IR8 7
 #define PROXIMITY_THRESHOLD 100 // experimental value
 
+
+/**
+ * @brief	Changes the value of the variable maze_cell and sets 4 leds
+ * 			according to the presence of obstacles around the e-puck.
+ *
+ * @param maze_cell		the 4 lower bits are set to 1 if the corresponding
+ * 						wall is around the e-puck in this order from the lower
+ * 						to the higher : front, right, back, left.
+ */
 void scan_maze_cell(uint8_t* maze_cell);
 
 /*

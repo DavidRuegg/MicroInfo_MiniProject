@@ -22,8 +22,13 @@ static uint8_t position_right_reached = 1;
 static int16_t speed_left = 0;
 static int16_t speed_right = 0;
 
-
-
+/**
+ * @brief	Set the position to reach for each motor and the speed
+ * 			for the e-puck to do a turn.
+ *
+ * @param angle		Value in steps corresponding to the number needed to do the turn,
+ * 					positive value to turn right, negative to turn left.
+ */
 void turn(int16_t angle){
 	left_motor_set_pos(0);
 	right_motor_set_pos(0);
@@ -44,7 +49,13 @@ void turn(int16_t angle){
 	}
 }
 
-
+/**
+ * @brief	Set the position to reach for each motor and the speed
+ * 			for the e-puck to move forward for a certain distance.
+ *
+ * @param distance		Value in steps corresponding to the number needed to move the
+ * 						expected length.
+ */
 void go_next_cell(int16_t distance){
 	left_motor_set_pos(0);
 	right_motor_set_pos(0);
@@ -98,6 +109,15 @@ static THD_FUNCTION(ControlMotor, arg) {
 	}
 }
 
+/**
+ * @brief	Set the position to reach for each motor and the speed
+ * 			for the e-puck to turn and then move forward/only move forward
+ * 			for a fixed distance of one cell of the maze.
+ *
+ * @param direction		Value in steps corresponding to the number needed to do the turn,
+ * 						positive value to turn right, negative to turn left, if 0 only moves
+ * 						forward.
+ */
 void move(uint16_t direction){
 
 	chBSemWait(&motor_ready_sem);		// necessary so it don't do weird things... -_-'
