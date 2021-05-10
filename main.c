@@ -2,16 +2,19 @@
 #include "ch.h"
 #include "memory_protection.h"
 
+#include <sensors/proximity.h>
+#include <camera/dcmi_camera.h>
+#include <camera/po8030.h>
+#include <motors.h>
+#include <leds.h>
+#include <spi_comm.h>
+
 #include <main.h>
 #include <DataAcquisition.h>
 #include <DataProcess.h>
 #include <SystemControl.h>
 
-#include <sensors/proximity.h>
-#include <motors.h>
-#include <leds.h>
 #include <selector.h>
-
 /*** GLOBAL VARIABLES ***/
 messagebus_t bus;
 MUTEX_DECL(bus_lock);
@@ -30,16 +33,24 @@ int main(void){
 	// init general bus message
 	messagebus_init(&bus, &bus_lock, &bus_condvar);
 
-	// init proximity sensors
-	proximity_start();
-	// init the motors
-	motors_init();
-	control_motor_start();
+	dcmi_start();
+	po8030_start();
 
-	// main variables
+	motors_init();
+
+	proximity_start();
+
+	spi_comm_start();
+
+	control_motor_start();
+	color_acquisition_start();
+
+	/*** INTERNAL VARIABLES ***/
 	uint8_t actual_cell = 0;
 
-	/* Infinite loop. */
+	chThdSleepMilliseconds(2000);
+
+	/*** Infinite loop. ***/
 	while (1) {
 
 		//	e-puck modes of operation

@@ -8,22 +8,10 @@
 #ifndef DATAPROCESS_H_
 #define DATAPROCESS_H_
 
-#define WALL_B 0x0F
-
 #define NORTH	0
 #define EAST	1
 #define SOUTH	2
 #define WEST	3
-
-/**
- * @brief
- *
- * @param maze_cell		the 4 lower bits are set to 1 if the corresponding
- * 						wall is around the e-puck in this order from the lower
- * 						to the higher : front, right, back, left.
- * @param orientation
- */
-void change_frame_reference(uint8_t* maze_cell, uint8_t orientation);
 
 /**
  * @brief	reset the value of the static variable orientation to 0

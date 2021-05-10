@@ -7,6 +7,7 @@
 
 #include <stdint.h>
 
+#include <main.h>
 #include <DataProcess.h>
 #include <DataAcquisition.h>
 #include <SystemControl.h>
@@ -14,15 +15,6 @@
 // keeps track of the orientation of the e-puck all the time
 // used in pledge and lwf (useless in lwf if used without pledge)
 static int8_t orientation = 0;
-
-/**
- * @brief
- *
- * @param maze_cell		the 4 lower bits are set to 1 if the corresponding
- * 						wall is around the e-puck in this order from the lower
- * 						to the higher : front, right, back, left.
- * @param orientation
- */
 void change_frame_reference(uint8_t* maze_cell, uint8_t orientation){
 	uint8_t maze_cell_tmp1 = (*maze_cell & WALL_B) << orientation;
 	uint8_t maze_cell_tmp2 = (maze_cell_tmp1 & 0x0F) | (maze_cell_tmp1 >> 4);
