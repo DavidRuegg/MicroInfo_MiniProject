@@ -42,8 +42,7 @@ int main(void){
 	spi_comm_start();
 
 	control_motor_start();
-	capture_image_start();
-	process_image_start();
+	color_acquisition_start();
 
 	/*** INTERNAL VARIABLES ***/
 	uint8_t actual_cell = 0;
