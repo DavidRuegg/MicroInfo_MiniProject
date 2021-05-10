@@ -70,17 +70,14 @@ static THD_FUNCTION(ControlMotor, arg) {
 			if(abs(left_motor_get_pos()) >= position_to_reach){
 				position_left_reached = POSITION_REACHED;
 				speed_left = STOP_SPEED;
-			}else{
-				speed_left = speed_left;
 			}
 			left_motor_set_speed(speed_left);
 		}
+
 		if(!position_right_reached){
 			if(abs(right_motor_get_pos()) >= position_to_reach){
 				position_right_reached = POSITION_REACHED;
 				speed_right = STOP_SPEED;
-			}else{
-				speed_right = speed_right;
 			}
 			right_motor_set_speed(speed_right);
 		}

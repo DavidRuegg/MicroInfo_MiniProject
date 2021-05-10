@@ -49,16 +49,13 @@ int main(void){
 	uint8_t actual_cell = 0;
 
 	chThdSleepMilliseconds(2000);
-	//scan_maze_cell(&actual_cell);
 
 	/*** Infinite loop. ***/
 	while (1) {
-/*
-		scan_maze_cell(&actual_cell);
-		chThdSleepMilliseconds(1000);
-*/
+
 		chBSemWait(&motor_ready_sem);
 		scan_maze_cell(&actual_cell);
+
 		if(!(actual_cell & WALL_B)){
 			chThdSleepMilliseconds(500);
 			set_body_led(42);

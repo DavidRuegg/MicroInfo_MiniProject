@@ -21,7 +21,7 @@
 #define IR6 5
 #define IR7 6
 #define IR8 7
-#define PROXIMITY_THRESHOLD 150 // experimental value
+#define PROXIMITY_THRESHOLD 100 // experimental value
 
 #define IMAGE_BUFFER_SIZE 200
 
