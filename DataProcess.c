@@ -69,16 +69,16 @@ void reset_orientation(void){
 	orientation = 0;
 }
 
-int16_t left_wall_follower(uint8_t maze_cell){			//	lwf algorithm
-	if(!(maze_cell & WALL_LEFT_B)){						//	turn left possible --> turn left
+int16_t left_wall_follower(uint8_t maze_cell){		//	lwf algorithm
+	if(!(maze_cell & WALL_LEFT_B)){					//	turn left possible --> turn left
 		orientation--;
 		return LEFT_TURN;
-	}else if(!(maze_cell & WALL_FRONT_B)){				//	...impossible --> move forward if possible
+	}else if(!(maze_cell & WALL_FRONT_B)){			//	...impossible --> move forward if possible
 		return MOVE_FORWARD;
-	}else if(!(maze_cell & WALL_RIGHT_B)){				//	...impossible --> turn right if possible
+	}else if(!(maze_cell & WALL_RIGHT_B)){			//	...impossible --> turn right if possible
 		orientation++;
 		return RIGHT_TURN;
-	}else{												//	...impossible --> turn backward
+	}else{											//	...impossible --> turn backward
 		orientation += 2;
 		return BACKWARD_TURN;
 	}
@@ -101,7 +101,6 @@ int16_t pledge_algorithm(uint8_t maze_cell){
 }
 
 void color_action(uint8_t maze_cell){
-
 	switch (maze_cell & COLOR_B) {
 	case YELLOW_B:
 		set_rgb_led(LED4, 100, 100, 0);

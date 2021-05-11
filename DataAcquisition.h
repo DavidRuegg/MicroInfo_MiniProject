@@ -22,7 +22,7 @@
 #define IR6 5
 #define IR7 6
 #define IR8 7
-#define PROXIMITY_THRESHOLD 120 // experimental value
+#define PROXIMITY_THRESHOLD 150 // experimental value
 
 #define COLOR_B 0x70
 #define BLUE_B 0x10
