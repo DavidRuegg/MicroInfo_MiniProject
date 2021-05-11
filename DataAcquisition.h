@@ -34,17 +34,32 @@
 #define WHITE_B 0x70
 #define COLOR_THRESHOLD 66
 
+#define HIGH_CELL_BITS 0xF0
+
 #define IMAGE_BUFFER_SIZE 200
 
+
+/**
+ * @brief	Starts thread to capture the color of the floor with
+ * 			 NORMALPRIO to CaptureImage and ProcessImage
+ */
 void color_acquisition_start(void);
 
 /**
- * @brief	Changes the value of the variable maze_cell and sets 4 leds
- * 			according to the presence of obstacles around the e-puck.
+ * @brief	Changes the value of the variable maze_cell according to the presence
+ * 			 of obstacles and floor color.
+ * 			Sets red LEDs according to the presence of obstacles around the e-puck.
  *
- * @param maze_cell		the 4 lower bits are set to 1 if the corresponding
- * 						wall is around the e-puck in this order from the lower
- * 						to the higher : front, right, back, left.
+ * @param maze_cell		Bits 0 to 3 are set to 1 if the corresponding
+ * 						 wall is around the e-puck.
+ * 							Bit 0 --> front wall
+ * 							Bit 1 --> right wall
+ * 							Bit 2 --> back wall
+ * 							Bit 3 --> left wall
+ * 						Bits 4 to 6 are set to 1 according to the color of the floor.
+ * 							Bit 4 --> blue
+ * 							Bit 5 --> green
+ * 							Bit 6 --> red
  */
 void scan_maze_cell(uint8_t* maze_cell);
 

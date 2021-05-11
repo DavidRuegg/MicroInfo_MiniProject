@@ -12,12 +12,9 @@ extern "C" {
 
 #define POS_SEL_0				0
 #define POS_SEL_1				1
-/** Robot wide IPC bus. */
+/*** Robot wide IPC bus. ***/
 extern messagebus_t bus;
-
 extern parameter_namespace_t parameter_root;
-
-void SendUint8ToComputer(uint8_t* data, uint16_t size);
 
 #ifdef __cplusplus
 }
