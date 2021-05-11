@@ -200,45 +200,12 @@ void scan_maze_cell(uint8_t* maze_cell){
 	/*** END SCAN FOR WALLS ***/
 
 	/*** SCAN FOR FLOOR COLOR ***
-	 * Color of the floor is saved on bits 4 to 6;
-	 * 	the color is checked with the thread ProcessImage
-	 * RGB back LEDs are set according to the floor color
+	 * Color of the floor is saved on bits 4 to 6
+	 * 	Bit 4 --> blue
+	 * 	Bit 5 --> green
+	 *  Bit 6 --> red
 	 */
 	*maze_cell |= cell_color;
-	switch (*maze_cell & COLOR_B) {
-	case YELLOW_B:
-		set_rgb_led(LED4, 100, 100, 0);
-		set_rgb_led(LED6, 100, 100, 0);
-		break;
-	case RED_B:
-		set_rgb_led(LED4, 100, 0, 0);
-		set_rgb_led(LED6, 100, 0, 0);
-		break;
-	case GREEN_B:
-		set_rgb_led(LED4, 0, 100, 0);
-		set_rgb_led(LED6, 0, 100, 0);
-		break;
-	case BLUE_B:
-		set_rgb_led(LED4, 0, 0, 100);
-		set_rgb_led(LED6, 0, 0, 100);
-		break;
-	case CYAN_B:
-		set_rgb_led(LED4, 0, 100, 100);
-		set_rgb_led(LED6, 0, 100, 100);
-		break;
-	case MAGENTA_B:
-		set_rgb_led(LED4, 100, 0, 100);
-		set_rgb_led(LED6, 100, 0, 100);
-		break;
-	case WHITE_B:
-		set_rgb_led(LED4, 100, 100, 100);
-		set_rgb_led(LED6, 100, 100, 100);
-		break;
-	default:
-		set_rgb_led(LED4, 0, 0, 0);
-		set_rgb_led(LED6, 0, 0, 0);
-		break;
-	}
 	/*** END SCAN FOR FLOOR COLOR ***/
 }
 

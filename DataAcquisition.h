@@ -49,7 +49,6 @@ void color_acquisition_start(void);
  * @brief	Changes the value of the variable maze_cell according to the presence
  * 			 of obstacles and floor color.
  * 			Sets red LEDs according to the presence of obstacles around the e-puck.
- * 			Sets RGB back LEDs according to the floor color.
  *
  * @param maze_cell		Bits 0 to 3 are set to 1 if the corresponding
  * 						 wall is around the e-puck.

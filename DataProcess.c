@@ -7,6 +7,8 @@
 
 #include <stdint.h>
 
+#include <leds.h>
+
 #include <main.h>
 #include <DataProcess.h>
 #include <DataAcquisition.h>
@@ -95,6 +97,45 @@ int16_t pledge_algorithm(uint8_t maze_cell){
 		}
 	}else{											//	lwf
 		return left_wall_follower(maze_cell);
+	}
+}
+
+void color_action(uint8_t maze_cell){
+
+	switch (maze_cell & COLOR_B) {
+	case YELLOW_B:
+		set_rgb_led(LED4, 100, 100, 0);
+		set_rgb_led(LED6, 100, 100, 0);
+		break;
+	case RED_B:
+		set_rgb_led(LED4, 100, 0, 0);
+		set_rgb_led(LED6, 100, 0, 0);
+		break;
+	case GREEN_B:
+		set_rgb_led(LED4, 0, 100, 0);
+		set_rgb_led(LED6, 0, 100, 0);
+		//correction_nominal_speed(CORRECTION_SPEED);
+		break;
+	case BLUE_B:
+		set_rgb_led(LED4, 0, 0, 100);
+		set_rgb_led(LED6, 0, 0, 100);
+		break;
+	case CYAN_B:
+		set_rgb_led(LED4, 0, 100, 100);
+		set_rgb_led(LED6, 0, 100, 100);
+		break;
+	case MAGENTA_B:
+		set_rgb_led(LED4, 100, 0, 100);
+		set_rgb_led(LED6, 100, 0, 100);
+		break;
+	case WHITE_B:
+		set_rgb_led(LED4, 100, 100, 100);
+		set_rgb_led(LED6, 100, 100, 100);
+		break;
+	default:
+		set_rgb_led(LED4, 0, 0, 0);
+		set_rgb_led(LED6, 0, 0, 0);
+		break;
 	}
 }
 

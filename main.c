@@ -59,6 +59,7 @@ int main(void){
 			chThdSleepMilliseconds(1500);
 			while(get_selector() == POS_SEL_0){
 				scan_maze_cell(&actual_cell);
+				color_action(actual_cell);
 				move(left_wall_follower(actual_cell));
 				chBSemWait(&motor_ready_sem);
 			}
@@ -68,12 +69,14 @@ int main(void){
 			chThdSleepMilliseconds(1500);
 			while(get_selector() == POS_SEL_1){
 				scan_maze_cell(&actual_cell);
+				color_action(actual_cell);
 				move(pledge_algorithm(actual_cell));
 				chBSemWait(&motor_ready_sem);
 			}
 			break;
 		default:			// default --> doesn't move
 			scan_maze_cell(&actual_cell);
+			color_action(actual_cell);
 			break;
 		}
 

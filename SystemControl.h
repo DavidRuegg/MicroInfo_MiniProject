@@ -11,6 +11,7 @@
 #include <stdint.h>
 
 #define NOMINAL_SPEED			500		// in [step/s]
+#define CORRECTION_SPEED		150		// in [step/s]
 #define STOP_SPEED				0		// in [step/s]
 #define NSTEP_ONE_REVOLUTION	1000	// steps for a complete revolution
 #define MOVE_FORWARD			0		// continue forward, no turn
@@ -30,6 +31,15 @@
  * 			NORMALPRIO+1
  */
 void control_motor_start(void);
+
+/**
+ * @brief	Increases or decreases the nominal speed.
+ *
+ * @param correction	Value in steps per seconds to increase/decrease the nominal speed
+ * 					 	 Positive value to increase.
+ * 					 	 Negative value to decrease.
+ */
+void correction_nominal_speed(int16_t correction);
 
 /**
  * @brief	Sets the position to reach for each motor at nominal speed

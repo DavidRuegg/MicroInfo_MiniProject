@@ -62,4 +62,20 @@ int16_t left_wall_follower(uint8_t maze_cell);
  */
 int16_t pledge_algorithm(uint8_t maze_cell);
 
+/**
+ * @brief	Sets RGB back LEDs according to color detected by the camera.
+ *
+ * @param maze_cell		Bits 0 to 3 are set to 1 if the corresponding
+ * 						 wall is around the e-puck.
+ * 							Bit 0 --> front wall
+ * 							Bit 1 --> right wall
+ * 							Bit 2 --> back wall
+ * 							Bit 3 --> left wall
+ * 						Bits 4 to 6 are set to 1 according to the color of the floor.
+ * 							Bit 4 --> blue
+ * 							Bit 5 --> green
+ * 							Bit 6 --> red
+ */
+void color_action(uint8_t maze_cell);
+
 #endif /* DATAPROCESS_H_ */
