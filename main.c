@@ -7,6 +7,7 @@
 #include <camera/po8030.h>
 #include <motors.h>
 #include <leds.h>
+#include <selector.h>
 #include <spi_comm.h>
 
 #include <main.h>
@@ -14,7 +15,6 @@
 #include <DataProcess.h>
 #include <SystemControl.h>
 
-#include <selector.h>
 /*** GLOBAL VARIABLES ***/
 messagebus_t bus;
 MUTEX_DECL(bus_lock);
@@ -24,38 +24,38 @@ CONDVAR_DECL(bus_condvar);
 extern binary_semaphore_t motor_ready_sem;
 
 int main(void){
-	/*** INITIALIZATION ***/
-	// init ChibiOS + mcu
+	/*** INTERNAL VARIABLES ***/
+	uint8_t actual_cell = 0;
+
+	/*** INITIALISATION ***/
+	// inits ChibiOS + mcu
 	halInit();
 	chSysInit();
 	mpu_init();
 
-	// init general bus message
+	// inits intern communication protocol
 	messagebus_init(&bus, &bus_lock, &bus_condvar);
 
+	// inits peripherals
 	dcmi_start();
 	po8030_start();
-
 	motors_init();
-
 	proximity_start();
-
 	spi_comm_start();
 
+	// inits threads
 	control_motor_start();
 	color_acquisition_start();
 
-	/*** INTERNAL VARIABLES ***/
-	uint8_t actual_cell = 0;
-
+	// sleeps to get everything correctly initialisated
 	chThdSleepMilliseconds(2000);
 
-	/*** Infinite loop. ***/
-	while (1) {
+	/*** INFINITE LOOP ***/
+	while(1){
 
-		//	e-puck modes of operation
+		/*** E-PUCK MODES OF OPERATION ***/
 		switch(get_selector()){
-		case POS_SEL_0:	//	selector = 0 --> left wall follower
+		case POS_SEL_0:		// selector = 0 --> left wall follower
 			chThdSleepMilliseconds(1500);
 			while(get_selector() == POS_SEL_0){
 				scan_maze_cell(&actual_cell);
@@ -63,8 +63,8 @@ int main(void){
 				chBSemWait(&motor_ready_sem);
 			}
 			break;
-		case POS_SEL_1:	//	selector = 1 --> pledge
-			reset_orientation();	//	so that pledge algo is usable without a total reset
+		case POS_SEL_1:		// selector = 1 --> pledge
+			reset_orientation();	// so that pledge algorithm is usable without a total reset
 			chThdSleepMilliseconds(1500);
 			while(get_selector() == POS_SEL_1){
 				scan_maze_cell(&actual_cell);
@@ -72,14 +72,14 @@ int main(void){
 				chBSemWait(&motor_ready_sem);
 			}
 			break;
-		default:	//	default --> doesn't move
+		default:			// default --> doesn't move
 			scan_maze_cell(&actual_cell);
 			break;
 		}
 
-		chThdYield();	//	!!!!! A PLACER DANS LES BOUCLES WHILE SI NECESSAIRE !!!!!
+		chThdYield();
 	}
-	/* Infinite loop. */
+	/*** END INFINITE LOOP ***/
 }
 
 #define STACK_CHK_GUARD 0xe2dee396

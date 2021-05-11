@@ -16,59 +16,21 @@
 /*** GLOBAL VARIABLES ***/
 BSEMAPHORE_DECL(motor_ready_sem, FALSE);
 
-static int32_t position_to_reach = 0;		// in [step]
-static uint8_t position_left_reached = 1;
-static uint8_t position_right_reached = 1;
-static int16_t speed_left = 0;
-static int16_t speed_right = 0;
+/*** STATIC VARIABLES ***/
+
+static int16_t position_to_reach = 0;		// in [steps]
+static uint8_t position_left_reached = 1;	// 1 == reached, 0 == not reached
+static uint8_t position_right_reached = 1;	// 1 == reached, 0 == not reached
+static int16_t speed_left = 0;				// in [step/s]
+static int16_t speed_right = 0;				// in [step/s]
+
+/*** INTERNAL FUNCTIONCS ***/
 
 /**
- * @brief	Set the position to reach for each motor and the speed
- * 			for the e-puck to do a turn.
- *
- * @param angle		Value in steps corresponding to the number needed to do the turn,
- * 					positive value to turn right, negative to turn left.
+ * @brief	Thread which controls if the positions has been reached by the motors.
+ * 			Signals semaphore motor_ready_sem when positions are reached.
+ * 			Sets speed consequently to static variables speed_left and speed_right.
  */
-void turn(int16_t angle){
-	left_motor_set_pos(0);
-	right_motor_set_pos(0);
-
-	position_to_reach = abs(angle);
-
-	position_left_reached = POSITION_NOT_REACHED;
-	position_right_reached = POSITION_NOT_REACHED;
-
-	if(angle > 0){
-		// turn right
-		speed_left = NOMINAL_SPEED;
-		speed_right = -NOMINAL_SPEED;
-	}else{
-		// turn left
-		speed_left = -NOMINAL_SPEED;
-		speed_right = NOMINAL_SPEED;
-	}
-}
-
-/**
- * @brief	Set the position to reach for each motor and the speed
- * 			for the e-puck to move forward for a certain distance.
- *
- * @param distance		Value in steps corresponding to the number needed to move the
- * 						expected length.
- */
-void go_next_cell(int16_t distance){
-	left_motor_set_pos(0);
-	right_motor_set_pos(0);
-	position_to_reach = distance;
-	position_left_reached = POSITION_NOT_REACHED;
-	position_right_reached = POSITION_NOT_REACHED;
-
-	speed_left = NOMINAL_SPEED;
-	speed_right = NOMINAL_SPEED;
-
-}
-
-
 static THD_WORKING_AREA(waControlMotor, 256);
 static THD_FUNCTION(ControlMotor, arg) {
 
@@ -106,27 +68,66 @@ static THD_FUNCTION(ControlMotor, arg) {
 	}
 }
 
-/**
- * @brief	Set the position to reach for each motor and the speed
- * 			for the e-puck to turn and then move forward/only move forward
- * 			for a fixed distance of one cell of the maze.
- *
- * @param direction		Value in steps corresponding to the number needed to do the turn,
- * 						positive value to turn right, negative to turn left, if 0 only moves
- * 						forward.
- */
-void move(uint16_t direction){
+/*** END INTERNAL FUNCTIONCS ***/
 
-	chBSemWait(&motor_ready_sem);		// necessary so it don't do weird things... -_-'
+/*** PUBLIC FUNCTIONCS ***/
 
+void control_motor_start(void){
+	chThdCreateStatic(waControlMotor, sizeof(waControlMotor), NORMALPRIO+1, ControlMotor, NULL);
+}
+
+void turn(int16_t angle){
+	// Resets left and right motors position
+	left_motor_set_pos(0);
+	right_motor_set_pos(0);
+
+	// Sets position to reach
+	position_to_reach = abs(angle);
+
+	// Resets position reached
+	position_left_reached = POSITION_NOT_REACHED;
+	position_right_reached = POSITION_NOT_REACHED;
+
+	if(angle > 0){						// turn right
+		speed_left = NOMINAL_SPEED;
+		speed_right = -NOMINAL_SPEED;
+	}else{								// turn left
+		speed_left = -NOMINAL_SPEED;
+		speed_right = NOMINAL_SPEED;
+	}
+}
+
+void go_next_cell(int16_t distance){
+	// Resets left and right motors position
+	left_motor_set_pos(0);
+	right_motor_set_pos(0);
+
+	// Sets position to reach
+	position_to_reach = abs(distance);
+
+	// Resets position reached
+	position_left_reached = POSITION_NOT_REACHED;
+	position_right_reached = POSITION_NOT_REACHED;
+
+	if(distance > 0){					// go forward
+		speed_left = NOMINAL_SPEED;
+		speed_right = NOMINAL_SPEED;
+	}else{								// go backward
+		speed_left = -NOMINAL_SPEED;
+		speed_right = -NOMINAL_SPEED;
+	}
+}
+
+void move(int16_t direction){
+	// Waits that the motors have reached their positions before a new command
+	chBSemWait(&motor_ready_sem);
+
+	// turn if necessary
 	if(!(direction == MOVE_FORWARD)){
 		turn(direction);
 		chBSemWait(&motor_ready_sem);
 	}
 
+	// move to next cell
 	go_next_cell(ONE_CELL);
-}
-
-void control_motor_start(void){
-	chThdCreateStatic(waControlMotor, sizeof(waControlMotor), NORMALPRIO+1, ControlMotor, NULL);
 }
