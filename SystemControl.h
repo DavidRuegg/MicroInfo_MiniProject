@@ -11,16 +11,19 @@
 #include <stdint.h>
 
 #define NOMINAL_SPEED			500		// in [step/s]
-#define CORRECTION_SPEED		150		// in [step/s]
+#define CORRECTION_SPEED		100		// in [step/s]
 #define STOP_SPEED				0		// in [step/s]
+#define SPEED_LIMIT_SUP			800		// in [step/s]
+#define SPEED_LIMIT_INF			200		// in [step/s]
 #define NSTEP_ONE_REVOLUTION	1000	// steps for a complete revolution
 #define MOVE_FORWARD			0		// continue forward, no turn
-#define MM_2_STEP				7.65	// converts millimeters to steps (experimental)
-#define ONE_CELL 				880 	// steps for one cell (experimental)
-#define DEGREE_2_STEP			3.60	// converts degrees to steps (experimental)
+#define MM_2_STEP				7.6935	// converts millimeters to steps (experimental)
+#define ONE_CELL 				884 	// steps for one cell (experimental)
+#define DEGREE_2_STEP			3.6069	// converts degrees to steps (experimental)
 #define LEFT_TURN				-324	// steps for 90 degree turn left (experimental)
 #define RIGHT_TURN				324 	// steps for 90 degree turn right (experimental)
 #define BACKWARD_TURN			648 	// steps for 180 degree turn (experimental)
+#define ONE_TURN				-1298 	// steps for 180 degree turn (experimental)
 
 #define POSITION_NOT_REACHED	0
 #define POSITION_REACHED       	1
@@ -72,5 +75,10 @@ void go_next_cell(int16_t distance);
  * 						 0 if only move forward.
  */
 void move(int16_t direction);
+
+/**
+ * @brief
+ */
+void floor_color_action(uint8_t maze_cell);
 
 #endif /* SYSTEMCONTROL_H_ */

@@ -25,9 +25,10 @@ extern binary_semaphore_t motor_ready_sem;
 
 int main(void){
 	/*** INTERNAL VARIABLES ***/
-	uint8_t actual_cell = 0;
+	uint8_t EPuckCell = 0;
+	int8_t ExitStatus = SEARCHING;
 
-	/*** INITIALISATION ***/
+	/*** INITIALIZATION ***/
 	// inits ChibiOS + mcu
 	halInit();
 	chSysInit();
@@ -45,41 +46,144 @@ int main(void){
 
 	// inits threads
 	control_motor_start();
+	proximity_acquisition_start();
 	color_acquisition_start();
 
-	// sleeps to get everything correctly initialisated
+	// sleeps to get everything correctly initialized
 	chThdSleepMilliseconds(2000);
 
 	/*** INFINITE LOOP ***/
 	while(1){
-
-		/*** E-PUCK MODES OF OPERATION ***/
+		/*** E-PUCK MODES OF OPERATION
+		 *		Selector = 0: maze solving with left wall follower algorithm.
+		 *		Selector = 1: maze solving with Pledge algorithm.
+		 *		Selector = 2: demonstration walls detection.
+		 *		Selector = 3: demonstration colors detection.
+		 *		Default		: walls detection and color detection.
+		 ***/
 		switch(get_selector()){
-		case POS_SEL_0:		// selector = 0 --> left wall follower
+		case POS_SEL_0:		// Selector = 0: maze solving with left wall follower algorithm.
+			// Clears all LEDs
+			set_body_led(0);
+			set_front_led(0);
+			clear_leds();
+
+			// Sleeps to be able to remove hands
 			chThdSleepMilliseconds(1500);
+
 			while(get_selector() == POS_SEL_0){
-				scan_maze_cell(&actual_cell);
-				color_action(actual_cell);
-				move(left_wall_follower(actual_cell));
-				chBSemWait(&motor_ready_sem);
+				// Updates the EPuckCell with the most recent one
+				EPuckCell = get_actual_cell();
+
+				// LEDs + Color action
+				set_wall_leds(EPuckCell);
+				set_floor_leds(EPuckCell);
+				floor_color_action(EPuckCell);
+
+				/* Updates ExitStatus and searches for an exit
+				 *		SEARCHING: 	left wall follower algorithm.
+				 *		FOUND: 		blink body LED green.
+				 *		BLOCKED: 	blink front LED red.
+				 */
+				check_exit(EPuckCell, &ExitStatus);
+				switch (ExitStatus) {
+				case SEARCHING:
+					move(left_wall_follower(EPuckCell));
+					chBSemWait(&motor_ready_sem);
+					break;
+				case FOUND:
+					set_body_led(TOGGLE_LED);
+					chThdSleepMilliseconds(500);
+					break;
+				case BLOCKED:
+					set_front_led(TOGGLE_LED);
+					chThdSleepMilliseconds(500);
+				default:
+					break;
+				}
 			}
 			break;
-		case POS_SEL_1:		// selector = 1 --> pledge
-			reset_orientation();	// so that pledge algorithm is usable without a total reset
+		case POS_SEL_1:		// Selector = 1: maze solving with Pledge algorithm.
+			// Resets orientation so that Pledge algorithm is usable without a total reset
+			reset_orientation();
+
+			// Clears all LEDs
+			set_body_led(0);
+			set_front_led(0);
+			clear_leds();
+
+			// Sleeps to be able to remove hands
 			chThdSleepMilliseconds(1500);
+
 			while(get_selector() == POS_SEL_1){
-				scan_maze_cell(&actual_cell);
-				color_action(actual_cell);
-				move(pledge_algorithm(actual_cell));
-				chBSemWait(&motor_ready_sem);
+				// Updates the EPuckCell with the most recent one
+				EPuckCell = get_actual_cell();
+
+				// LEDs + Color action
+				set_wall_leds(EPuckCell);
+				set_floor_leds(EPuckCell);
+				floor_color_action(EPuckCell);
+
+				/* Updates ExitStatus and searches for an exit
+				 *		SEARCHING: 	left wall follower algorithm.
+				 *		FOUND: 		blink body LED green.
+				 *		BLOCKED: 	blink front LED red.
+				 */
+				check_exit(EPuckCell, &ExitStatus);
+				switch (ExitStatus) {
+				case SEARCHING:
+					move(pledge_algorithm(EPuckCell));
+					chBSemWait(&motor_ready_sem);
+					break;
+				case FOUND:
+					set_body_led(TOGGLE_LED);
+					chThdSleepMilliseconds(500);
+					break;
+				case BLOCKED:
+					set_front_led(TOGGLE_LED);
+					chThdSleepMilliseconds(500);
+				default:
+					break;
+				}
 			}
 			break;
-		default:			// default --> doesn't move
-			scan_maze_cell(&actual_cell);
-			color_action(actual_cell);
+		case POS_SEL_2:		// Selector = 2: demonstration walls detection.
+			// Clear all LEDs
+			set_body_led(0);
+			set_front_led(0);
+			clear_leds();
+
+			while(get_selector() == POS_SEL_2){
+				// Set wall LEDs
+				EPuckCell = get_actual_cell();
+				set_wall_leds(EPuckCell);
+				chThdYield();
+			}
+			break;
+		case POS_SEL_3:		// Selector = 3: demonstration colors detection.
+			// Clear all LEDs
+			set_body_led(0);
+			set_front_led(0);
+			clear_leds();
+
+			while(get_selector() == POS_SEL_3){
+				// Set floor LEDs
+				EPuckCell = get_actual_cell();
+				set_floor_leds(EPuckCell);
+				chThdYield();
+			}
+			break;
+		default:			// Default: walls detection and color detection.
+			// Clear body + front LEDs
+			set_body_led(0);
+			set_front_led(0);
+
+			// Set wall + floor LEDs
+			EPuckCell = get_actual_cell();
+			set_wall_leds(EPuckCell);
+			set_floor_leds(EPuckCell);
 			break;
 		}
-
 		chThdYield();
 	}
 	/*** END INFINITE LOOP ***/

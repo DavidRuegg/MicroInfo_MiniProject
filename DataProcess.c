@@ -7,6 +7,8 @@
 
 #include <stdint.h>
 
+#include "ch.h"
+
 #include <leds.h>
 
 #include <main.h>
@@ -14,10 +16,11 @@
 #include <DataAcquisition.h>
 #include <SystemControl.h>
 
+
 /*** STATIC VARIABLES ***/
 
 /* Keeps track of the orientation of the e-puck all the time
- * used in pledge and lwf (useless in lwf if used without pledge) and
+ * used in Pledge and lwf (useless in lwf if used without Pledge) and
  * to change the reference frame (e-puck frame or maze frame).
  */
 static int8_t orientation = 0;
@@ -85,57 +88,73 @@ int16_t left_wall_follower(uint8_t maze_cell){		//	lwf algorithm
 }
 
 int16_t pledge_algorithm(uint8_t maze_cell){
-	if(orientation == 0){							//	pledge
+	if(orientation == 0){							//	condition for Pledge algorithm
 		if(!(maze_cell & WALL_FRONT_B)){			//	move forward possible --> move forward
 			return MOVE_FORWARD;
 		}else if(!(maze_cell & WALL_RIGHT_B)){		//	...impossible --> turn right if possible
 			orientation++;
 			return RIGHT_TURN;
-		}else{										//	...impossible --> turn backward
+		}else if (!(maze_cell & WALL_BACK_B)){		//	...impossible --> turn backward if possible
 			orientation += 2;
 			return BACKWARD_TURN;
+		}else{										//	...impossible --> turn left
+			orientation--;
+			return LEFT_TURN;
 		}
-	}else{											//	lwf
+	}else{											//	if not Pledge algorithm --> left wall follower algorithm
 		return left_wall_follower(maze_cell);
 	}
 }
 
-void color_action(uint8_t maze_cell){
+void set_wall_leds(uint8_t maze_cell){
+	set_led(LED1, ((maze_cell & WALL_FRONT_B)>>0));
+	set_led(LED3, ((maze_cell & WALL_RIGHT_B)>>1));
+	set_led(LED5, ((maze_cell & WALL_BACK_B)>>2));
+	set_led(LED7, ((maze_cell & WALL_LEFT_B)>>3));
+}
+
+void set_floor_leds(uint8_t maze_cell){
+	set_rgb_led(LED4,
+			100*((maze_cell & RED_B)>>6),
+			100*((maze_cell & GREEN_B)>>5),
+			100*((maze_cell & BLUE_B)>>4));
+	set_rgb_led(LED6,
+			100*((maze_cell & RED_B)>>6),
+			100*((maze_cell & GREEN_B)>>5),
+			100*((maze_cell & BLUE_B)>>4));
+}
+
+void floor_color_action(uint8_t maze_cell){
 	switch (maze_cell & COLOR_B) {
-	case YELLOW_B:
-		set_rgb_led(LED4, 100, 100, 0);
-		set_rgb_led(LED6, 100, 100, 0);
-		break;
 	case RED_B:
-		set_rgb_led(LED4, 100, 0, 0);
-		set_rgb_led(LED6, 100, 0, 0);
+		//correction_nominal_speed(-CORRECTION_SPEED);
 		break;
 	case GREEN_B:
-		set_rgb_led(LED4, 0, 100, 0);
-		set_rgb_led(LED6, 0, 100, 0);
-		//correction_nominal_speed(CORRECTION_SPEED);
+		correction_nominal_speed(CORRECTION_SPEED);
 		break;
 	case BLUE_B:
-		set_rgb_led(LED4, 0, 0, 100);
-		set_rgb_led(LED6, 0, 0, 100);
-		break;
-	case CYAN_B:
-		set_rgb_led(LED4, 0, 100, 100);
-		set_rgb_led(LED6, 0, 100, 100);
-		break;
-	case MAGENTA_B:
-		set_rgb_led(LED4, 100, 0, 100);
-		set_rgb_led(LED6, 100, 0, 100);
-		break;
-	case WHITE_B:
-		set_rgb_led(LED4, 100, 100, 100);
-		set_rgb_led(LED6, 100, 100, 100);
+		turn(ONE_TURN);
 		break;
 	default:
-		set_rgb_led(LED4, 0, 0, 0);
-		set_rgb_led(LED6, 0, 0, 0);
 		break;
 	}
 }
 
+void check_exit(uint8_t maze_cell, int8_t* OldStatus){
+	int8_t NewStatus = SEARCHING;
+
+	// Checks status
+	if((maze_cell & WALL_B) == WALL_B){		// 4 walls
+		NewStatus = BLOCKED;
+	}else if ((maze_cell & WALL_B) == 0){	// no wall
+		NewStatus = FOUND;
+	}
+
+	// Clears LEDs if status has changed
+	if(NewStatus != *OldStatus){
+		set_body_led(0);
+		set_front_led(0);
+		*OldStatus = NewStatus;
+	}
+}
 /*** END PUBLIC FUNCTIONS ***/

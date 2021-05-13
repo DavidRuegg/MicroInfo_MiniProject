@@ -13,15 +13,115 @@
 #include <sensors/proximity.h>
 #include <leds.h>
 
+#include <main.h>
 #include <DataAcquisition.h>
 #include <DataProcess.h>
 
 /*** STATIC VARIABLES ***/
 
-static uint8_t cell_color;
+/* Variable ActualCell is continuously updated by threads: GetProximity and ProcessImage,
+ *  according to the environment.
+ * Bits 0 to 3 are set to 1 if the corresponding
+ *  wall is around the e-puck.
+ * 		Bit 0 --> front wall
+ * 		Bit 1 --> right wall
+ *		Bit 2 --> back wall
+ *		Bit 3 --> left wall
+ * Bits 4 to 6 are set to 1 according to the color of the floor.
+ *		Bit 4 --> blue
+ *		Bit 5 --> green
+ *		Bit 6 --> red
+ */
+static uint8_t ActualCell;
 static BSEMAPHORE_DECL(image_ready_sem, FALSE);
 
 /*** INTERNAL FUNCTIONS ***/
+
+/**
+ * @brief
+ */
+static THD_WORKING_AREA(waGetProximity, 256);
+static THD_FUNCTION(GetProximity, arg){
+	chRegSetThreadName(__FUNCTION__);
+	(void)arg;
+
+	/* variables used when two sensors are used for the same wall, as an "or" condition
+	 *  example condition: (IR1 || IR8) --> wall detected
+	 */
+	uint8_t Check_IR18 = 0;
+	uint8_t Check_IR45 = 0;
+
+	systime_t time;
+
+	/*** INFINITE LOOP ***/
+	while(1){
+		time = chVTGetSystemTime();
+
+		/*** SCAN FOR WALLS ***
+		 * Walls are saved on bits 0 to 3
+		 * 	IR1 and IR8 --> front wall
+		 * 	IR3 		--> right wall
+		 * 	IR4 and IR5 --> back wall
+		 * 	IR6			--> left wall
+		 */
+		for(uint8_t i=0 ; i<PROXIMITY_NB_CHANNELS ; i++){
+			if((i == IR2) || (i == IR7)){					// no use of IR2 and IR7 sensors
+				continue;
+			}
+			else if(get_prox(i) > PROXIMITY_THRESHOLD){		// wall detected --> sets to 1
+				switch (i) {
+				case IR1:
+				case IR8:
+					ActualCell |= WALL_FRONT_B;
+					Check_IR18 = 1;
+					break;
+				case IR3:
+					ActualCell |= WALL_RIGHT_B;
+					break;
+				case IR4:
+				case IR5:
+					ActualCell |= WALL_BACK_B;
+					Check_IR45 = 1;
+					break;
+				case IR6:
+					ActualCell |= WALL_LEFT_B;
+					break;
+				default:
+					break;
+				}
+			}else{											// no wall detected --> sets to 0
+				switch (i) {
+				case IR1:
+				case IR8:
+					if(!Check_IR18){
+						ActualCell &= ~WALL_FRONT_B;
+					}
+					Check_IR18 = 0;
+					break;
+				case IR3:
+					ActualCell &= ~WALL_RIGHT_B;
+					break;
+				case IR4:
+				case IR5:
+					if(!Check_IR45){
+						ActualCell &= ~WALL_BACK_B;
+					}
+					Check_IR45 = 0;
+					break;
+				case IR6:
+					ActualCell &= ~WALL_LEFT_B;
+					break;
+				default:
+					break;
+				}
+
+			}
+		}
+		// 20 Hz cycle
+		chThdSleepUntilWindowed(time, time + MS2ST(50));
+	}
+	/*** END INFINITE LOOP ***/
+}
 
 /**
  * @brief	Thread which configures and captures images.
@@ -72,7 +172,7 @@ static THD_FUNCTION(CaptureImage, arg){
 /**
  * @brief	Thread which extracts the colors of the image.
  * 			Sets the colors to RGB front LEDs.
- * 			Sets the colors to static variable cell_color.
+ * 			Sets the colors to static variable ActualCell.
  */
 static THD_WORKING_AREA(waProcessImage, 256);
 static THD_FUNCTION(ProcessImage, arg){
@@ -87,6 +187,7 @@ static THD_FUNCTION(ProcessImage, arg){
 	uint32_t val_green = 0;
 	uint32_t val_blue = 0;
 	uint16_t max_val = 0;
+	uint8_t Color = 0;
 
 	/*** INFINITE LOOP ***/
 	while(1){
@@ -100,14 +201,14 @@ static THD_FUNCTION(ProcessImage, arg){
 		val_red = 0;
 		val_green = 0;
 		val_blue = 0;
-		cell_color = 0;
+		Color = 0;
 
-		// Extracts and adds all pixels values of one line (format RGB565)
-		for(uint16_t i = 0 ; i < (2 * IMAGE_BUFFER_SIZE) ; i+=2){
-			val_red += (img_buff_ptr[i]&0xF8) >> 2;
-			val_green += ((img_buff_ptr[i]&0x07) << 3) +
-					((img_buff_ptr[i+1]&0xE0) >> 5);
-			val_blue += (img_buff_ptr[i+1]&0x1F) << 1;
+		// Extracts and adds all pixels values of one line, by color (format RGB565)
+		for(uint16_t i = 0 ; i < (2 * IMAGE_BUFFER_SIZE) ; i+=2){	// pixels are acquired on two bytes
+			val_red += (img_buff_ptr[i] & 0xF8) >> 2;				// red value scaled to green size
+			val_green += ((img_buff_ptr[i] & 0x07) << 3) +			// green value
+					((img_buff_ptr[i+1] & 0xE0) >> 5);
+			val_blue += (img_buff_ptr[i+1] & 0x1F) << 1;			// blue value scaled to green size
 		}
 
 		// Checks for the maximum value of RGB
@@ -124,20 +225,19 @@ static THD_FUNCTION(ProcessImage, arg){
 		val_green = (val_green*100)/max_val;
 		val_blue = (val_blue*100)/max_val;
 
-		/* Saves the colors to static variable color cell
-		 *  system is locked in order to not mix colors with the previous ones
-		 */
-		chSysLock();
+		// Saves the colors to variable Color
 		if(val_red > COLOR_THRESHOLD){
-			cell_color |= RED_B;
+			Color |= RED_B;
 		}
 		if(val_green > COLOR_THRESHOLD){
-			cell_color |= GREEN_B;
+			Color |= GREEN_B;
 		}
 		if(val_blue > COLOR_THRESHOLD){
-			cell_color |= BLUE_B;
+			Color |= BLUE_B;
 		}
-		chSysUnlock();
+
+		// Transfers colors to static variable ActualCell and erases previous ones
+		ActualCell = ((ActualCell & ~COLOR_B) | Color);
 
 		// Sets camera output to RGB front LEDs
 		set_rgb_led(LED2, val_red, val_green, val_blue);
@@ -150,63 +250,17 @@ static THD_FUNCTION(ProcessImage, arg){
 
 /*** PUBLIC FUNCTIONS ***/
 
+void proximity_acquisition_start(void){
+	chThdCreateStatic(waGetProximity, sizeof(waGetProximity), NORMALPRIO, GetProximity, NULL);
+}
+
 void color_acquisition_start(void){
 	chThdCreateStatic(waCaptureImage, sizeof(waCaptureImage), NORMALPRIO, CaptureImage, NULL);
 	chThdCreateStatic(waProcessImage, sizeof(waProcessImage), NORMALPRIO, ProcessImage, NULL);
 }
 
-void scan_maze_cell(uint8_t* maze_cell){
-	// Resets cell
-	*maze_cell = 0;
-
-	/*** SCAN FOR WALLS ***
-	 * Walls are saved on bits 0 to 3
-	 * 	IR1 and IR8 --> front wall
-	 * 	IR3 		--> right wall
-	 * 	IR4 and IR5 --> back wall
-	 * 	IR6			--> left wall
-	 * Red LEDs are set to indicate a wall
-	 */
-	set_led(NUM_LED,0);
-	for(uint8_t i=0 ; i<PROXIMITY_NB_CHANNELS ; i++){
-		if((i == IR2) || (i == IR7)){	// no use of IR2 and IR7 sensors
-			continue;
-		}
-		else if(get_prox(i) > PROXIMITY_THRESHOLD){
-			switch (i) {
-			case IR1:
-			case IR8:
-				*maze_cell |= WALL_FRONT_B;
-				set_led(LED1, 1);
-				break;
-			case IR3:
-				*maze_cell |= WALL_RIGHT_B;
-				set_led(LED3, 1);
-				break;
-			case IR4:
-			case IR5:
-				*maze_cell |= WALL_BACK_B;
-				set_led(LED5, 1);
-				break;
-			case IR6:
-				*maze_cell |= WALL_LEFT_B;
-				set_led(LED7, 1);
-				break;
-			default:
-				break;
-			}
-		}
-	}
-	/*** END SCAN FOR WALLS ***/
-
-	/*** SCAN FOR FLOOR COLOR ***
-	 * Color of the floor is saved on bits 4 to 6
-	 * 	Bit 4 --> blue
-	 * 	Bit 5 --> green
-	 *  Bit 6 --> red
-	 */
-	*maze_cell |= cell_color;
-	/*** END SCAN FOR FLOOR COLOR ***/
+uint8_t get_actual_cell(void){
+	return ActualCell;
 }
 
 /*** END PUBLIC FUNCTIONS ***/

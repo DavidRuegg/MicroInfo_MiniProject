@@ -38,7 +38,7 @@ static THD_FUNCTION(ControlMotor, arg) {
 	chRegSetThreadName(__FUNCTION__);
 	(void)arg;
 
-	systime_t time;
+	volatile systime_t time;
 
 	/*** INFINITE LOOP ***/
 	while(1){
@@ -73,8 +73,8 @@ static THD_FUNCTION(ControlMotor, arg) {
 			chBSemSignal(&motor_ready_sem);
 		}
 
-		// 20 Hz cycle
-		chThdSleepUntilWindowed(time, time + MS2ST(50));
+		// 100 Hz cycle
+		chThdSleepUntilWindowed(time, time + MS2ST(2));
 	}
 	/*** END INFINITE LOOP ***/
 }
@@ -89,6 +89,12 @@ void control_motor_start(void){
 
 void correction_nominal_speed(int16_t correction){
 	nominal_speed += correction;
+	if(nominal_speed > SPEED_LIMIT_SUP){
+		nominal_speed = SPEED_LIMIT_SUP;
+	}
+	if(nominal_speed < SPEED_LIMIT_INF){
+		nominal_speed = SPEED_LIMIT_INF;
+	}
 }
 
 void turn(int16_t angle){
@@ -146,3 +152,5 @@ void move(int16_t direction){
 	// move to next cell
 	go_next_cell(ONE_CELL);
 }
+
+/*** END PUBLIC FUNCTIONCS ***/

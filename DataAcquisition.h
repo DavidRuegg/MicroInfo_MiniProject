@@ -22,7 +22,7 @@
 #define IR6 5
 #define IR7 6
 #define IR8 7
-#define PROXIMITY_THRESHOLD 150 // experimental value
+#define PROXIMITY_THRESHOLD 100 // experimental value
 
 #define COLOR_B 0x70
 #define BLUE_B 0x10
@@ -40,10 +40,20 @@
 
 
 /**
+ * @brief
+ */
+void proximity_acquisition_start(void);
+
+/**
  * @brief	Starts thread to capture the color of the floor with
  * 			 NORMALPRIO to CaptureImage and ProcessImage
  */
 void color_acquisition_start(void);
+
+/**
+ * @brief
+ */
+uint8_t get_actual_cell(void);
 
 /**
  * @brief	Changes the value of the variable maze_cell according to the presence
