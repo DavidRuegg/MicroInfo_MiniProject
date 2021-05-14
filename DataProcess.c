@@ -127,7 +127,7 @@ void set_floor_leds(uint8_t maze_cell){
 void floor_color_action(uint8_t maze_cell){
 	switch (maze_cell & COLOR_B) {
 	case RED_B:
-		//correction_nominal_speed(-CORRECTION_SPEED);
+		correction_nominal_speed(-CORRECTION_SPEED);
 		break;
 	case GREEN_B:
 		correction_nominal_speed(CORRECTION_SPEED);

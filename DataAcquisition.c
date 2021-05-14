@@ -17,6 +17,13 @@
 #include <DataAcquisition.h>
 #include <DataProcess.h>
 
+
+/*** GLOBAL VARIABLES ***/
+
+thd_metadata_t CaptureImage_MetaData = {.Sleep = 0, .ThdReference = NULL};
+thd_metadata_t GetProximity_MetaData = {.Sleep = 0, .ThdReference = NULL};
+
+
 /*** STATIC VARIABLES ***/
 
 /* Variable ActualCell is continuously updated by threads: GetProximity and ProcessImage,
@@ -33,7 +40,9 @@
  *		Bit 6 --> red
  */
 static uint8_t ActualCell;
+
 static BSEMAPHORE_DECL(image_ready_sem, FALSE);
+
 
 /*** INTERNAL FUNCTIONS ***/
 
@@ -55,6 +64,12 @@ static THD_FUNCTION(GetProximity, arg){
 
 	/*** INFINITE LOOP ***/
 	while(1){
+		if(GetProximity_MetaData.Sleep){
+			chSysLock();
+			GetProximity_MetaData.Sleep = chThdSuspendS(&GetProximity_MetaData.ThdReference);
+			chSysUnlock();
+		}
+
 		time = chVTGetSystemTime();
 
 		/*** SCAN FOR WALLS ***
@@ -157,6 +172,12 @@ static THD_FUNCTION(CaptureImage, arg){
 
 	/*** INFINITE LOOP ***/
 	while(1){
+		if(CaptureImage_MetaData.Sleep){
+			chSysLock();
+			CaptureImage_MetaData.Sleep = chThdSuspendS(&CaptureImage_MetaData.ThdReference);
+			chSysUnlock();
+		}
+
 		// Starts a capture
 		dcmi_capture_start();
 
@@ -240,8 +261,13 @@ static THD_FUNCTION(ProcessImage, arg){
 		ActualCell = ((ActualCell & ~COLOR_B) | Color);
 
 		// Sets camera output to RGB front LEDs
-		set_rgb_led(LED2, val_red, val_green, val_blue);
-		set_rgb_led(LED8, val_red, val_green, val_blue);
+		if(!CaptureImage_MetaData.Sleep){
+			set_rgb_led(LED2, val_red, val_green, val_blue);
+			set_rgb_led(LED8, val_red, val_green, val_blue);
+		}else{	// only once if thread CaptureImage went to sleep --> switches off the RGB LEDs
+			set_rgb_led(LED2, 0, 0, 0);
+			set_rgb_led(LED8, 0, 0, 0);
+		}
 	}
 	/*** END INFINITE LOOP ***/
 }

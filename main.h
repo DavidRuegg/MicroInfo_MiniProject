@@ -5,6 +5,8 @@
 extern "C" {
 #endif
 
+#include <stdint.h>
+
 #include "camera/dcmi_camera.h"
 #include "msgbus/messagebus.h"
 #include "parameter/parameter.h"
@@ -14,6 +16,14 @@ extern "C" {
 #define POS_SEL_2	2
 #define POS_SEL_3	3
 #define POS_SEL_4	4
+
+#define SLEEP_MODE 1
+#define AWAKE_MODE 0
+
+typedef struct thd_metadata_s{
+    uint8_t Sleep;
+    thread_reference_t ThdReference;
+} thd_metadata_t;
 
 /*** Robot wide IPC bus. ***/
 extern messagebus_t bus;

@@ -9,15 +9,17 @@
 
 #include <motors.h>
 
+#include <main.h>
 #include <SystemControl.h>
 #include <DataAcquisition.h>
 #include <DataProcess.h>
 
 /*** GLOBAL VARIABLES ***/
+thd_metadata_t ControlMotor_MetaData = {.Sleep = 0, .ThdReference = NULL};
 BSEMAPHORE_DECL(motor_ready_sem, FALSE);
 
-/*** STATIC VARIABLES ***/
 
+/*** STATIC VARIABLES ***/
 static int16_t position_to_reach = 0;			// in [steps]
 static uint8_t position_left_reached = 1;		// 1 == reached, 0 == not reached
 static uint8_t position_right_reached = 1;		// 1 == reached, 0 == not reached
@@ -39,9 +41,17 @@ static THD_FUNCTION(ControlMotor, arg) {
 	(void)arg;
 
 	volatile systime_t time;
+	volatile int16_t position_right =0;
+	volatile int16_t position_left =0;
 
 	/*** INFINITE LOOP ***/
 	while(1){
+		if(ControlMotor_MetaData.Sleep){
+			chSysLock();
+			ControlMotor_MetaData.Sleep = chThdSuspendS(&ControlMotor_MetaData.ThdReference);
+			chSysUnlock();
+		}
+
 		time = chVTGetSystemTime();
 
 		// Checks if position left has been reached
@@ -49,6 +59,7 @@ static THD_FUNCTION(ControlMotor, arg) {
 
 			// Action when position left has been reached
 			if(abs(left_motor_get_pos()) >= position_to_reach){
+				position_left = left_motor_get_pos();
 				position_left_reached = POSITION_REACHED;
 				speed_left = STOP_SPEED;
 			}
@@ -61,6 +72,7 @@ static THD_FUNCTION(ControlMotor, arg) {
 
 			// Action when position right has been reached
 			if(abs(right_motor_get_pos()) >= position_to_reach){
+				position_right = right_motor_get_pos();
 				position_right_reached = POSITION_REACHED;
 				speed_right = STOP_SPEED;
 			}
@@ -74,7 +86,7 @@ static THD_FUNCTION(ControlMotor, arg) {
 		}
 
 		// 100 Hz cycle
-		chThdSleepUntilWindowed(time, time + MS2ST(2));
+		chThdSleepUntilWindowed(time, time + MS2ST(1));
 	}
 	/*** END INFINITE LOOP ***/
 }

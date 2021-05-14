@@ -22,7 +22,7 @@
 #define IR6 5
 #define IR7 6
 #define IR8 7
-#define PROXIMITY_THRESHOLD 100 // experimental value
+#define PROXIMITY_THRESHOLD 140 // experimental value
 
 #define COLOR_B 0x70
 #define BLUE_B 0x10
@@ -55,22 +55,13 @@ void color_acquisition_start(void);
  */
 uint8_t get_actual_cell(void);
 
-/**
- * @brief	Changes the value of the variable maze_cell according to the presence
- * 			 of obstacles and floor color.
- * 			Sets red LEDs according to the presence of obstacles around the e-puck.
- *
- * @param maze_cell		Bits 0 to 3 are set to 1 if the corresponding
- * 						 wall is around the e-puck.
- * 							Bit 0 --> front wall
- * 							Bit 1 --> right wall
- * 							Bit 2 --> back wall
- * 							Bit 3 --> left wall
- * 						Bits 4 to 6 are set to 1 according to the color of the floor.
- * 							Bit 4 --> blue
- * 							Bit 5 --> green
- * 							Bit 6 --> red
- */
-void scan_maze_cell(uint8_t* maze_cell);
+/*
+void make_thread_captureImage_sleep(void);
 
+void make_thread_captureImage_wakeup(void);
+
+void make_thread_getProximity_sleep(void);
+
+void make_thread_getProximity_wakeup(void);
+*/
 #endif /* DATAACQUISITION_H_ */
