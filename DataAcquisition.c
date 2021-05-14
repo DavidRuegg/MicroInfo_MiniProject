@@ -1,12 +1,15 @@
-/*
- * DataAcquisition.c
+/**
+ * @file	DataAcquisition.c
  *
- *  Created on: 23 avr. 2021
- *      Author: druegg
+ * @author	David 	RUEGG
+ * @author	Thibaut	STOLTZ
+ *
+ * @date	14.05.2021
+ *
+ * @brief	Thread to acquire proximity data based on IR sensors.
+ * 			Threads to acquire colors detection based on CMOS camera.
+ * 			Static variable and getter to save environment.
  */
-#include <stdint.h>
-
-#include "ch.h"
 
 #include <camera/po8030.h>
 #include <camera/dcmi_camera.h>
@@ -15,17 +18,15 @@
 
 #include <main.h>
 #include <DataAcquisition.h>
-#include <DataProcess.h>
 
 
 /*** GLOBAL VARIABLES ***/
-
 thd_metadata_t CaptureImage_MetaData = {.Sleep = 0, .ThdReference = NULL};
 thd_metadata_t GetProximity_MetaData = {.Sleep = 0, .ThdReference = NULL};
 
 
 /*** STATIC VARIABLES ***/
-
+static BSEMAPHORE_DECL(ImageReady_sem, FALSE);
 /* Variable ActualCell is continuously updated by threads: GetProximity and ProcessImage,
  *  according to the environment.
  * Bits 0 to 3 are set to 1 if the corresponding
@@ -41,15 +42,14 @@ thd_metadata_t GetProximity_MetaData = {.Sleep = 0, .ThdReference = NULL};
  */
 static uint8_t ActualCell;
 
-static BSEMAPHORE_DECL(image_ready_sem, FALSE);
-
 
 /*** INTERNAL FUNCTIONS ***/
 
 /**
- * @brief
+ * @brief	Thread which retrieves continuously proximity data.
+ * 			Sets corresponding walls to static variable ActualCell.
  */
-static THD_WORKING_AREA(waGetProximity, 256);
+static THD_WORKING_AREA(waGetProximity, 64);
 static THD_FUNCTION(GetProximity, arg){
 	chRegSetThreadName(__FUNCTION__);
 	(void)arg;
@@ -60,17 +60,18 @@ static THD_FUNCTION(GetProximity, arg){
 	uint8_t Check_IR18 = 0;
 	uint8_t Check_IR45 = 0;
 
-	systime_t time;
+	systime_t Time;
 
 	/*** INFINITE LOOP ***/
 	while(1){
+		// Enters sleep mode if asked by another thread.
 		if(GetProximity_MetaData.Sleep){
 			chSysLock();
 			GetProximity_MetaData.Sleep = chThdSuspendS(&GetProximity_MetaData.ThdReference);
 			chSysUnlock();
 		}
 
-		time = chVTGetSystemTime();
+		Time = chVTGetSystemTime();
 
 		/*** SCAN FOR WALLS ***
 		 * Walls are saved on bits 0 to 3
@@ -83,7 +84,7 @@ static THD_FUNCTION(GetProximity, arg){
 			if((i == IR2) || (i == IR7)){					// no use of IR2 and IR7 sensors
 				continue;
 			}
-			else if(get_prox(i) > PROXIMITY_THRESHOLD){		// wall detected --> sets to 1
+			else if(get_prox(i) > PROXIMITY_THRESHOLD){		// wall detected --> sets bit to 1
 				switch (i) {
 				case IR1:
 				case IR8:
@@ -104,7 +105,7 @@ static THD_FUNCTION(GetProximity, arg){
 				default:
 					break;
 				}
-			}else{											// no wall detected --> sets to 0
+			}else{											// no wall detected --> sets bit to 0
 				switch (i) {
 				case IR1:
 				case IR8:
@@ -133,45 +134,43 @@ static THD_FUNCTION(GetProximity, arg){
 			}
 		}
 		// 20 Hz cycle
-		chThdSleepUntilWindowed(time, time + MS2ST(50));
+		chThdSleepUntilWindowed(Time, Time + MS2ST(50));
 	}
 	/*** END INFINITE LOOP ***/
 }
 
 /**
  * @brief	Thread which configures and captures images.
- * 			Signals semaphore image_ready_sem when an image has been captured.
+ * 			Signals semaphore ImageReady_sem when an image has been captured.
  */
 static THD_WORKING_AREA(waCaptureImage, 256);
 static THD_FUNCTION(CaptureImage, arg){
 	chRegSetThreadName(__FUNCTION__);
 	(void)arg;
 
+	/*** PO8030 CONFIGURATION ***/
 	// Image configuration: format --> RGB565, origin --> (220,240), size --> (IMAGE_BUFFER_SIZE, 2)
 	po8030_advanced_config(FORMAT_RGB565, 220, 240, IMAGE_BUFFER_SIZE, 2, SUBSAMPLING_X1, SUBSAMPLING_X1);
-
 	// White balance disabled in order to identify the colors
 	po8030_set_awb(0);
-
 	// RGB gain adjusted to the scene
-	po8030_set_rgb_gain(0x52, 0x52 , 0x65);
-	//po8030_set_rgb_gain(0x5E, 0x4F , 0x5D);
-	//po8030_set_rgb_gain(0x55, 0x4F , 0x65);
-
+	po8030_set_rgb_gain(0x52, 0x52 , 0x65);		// Office - Sunny
+	//po8030_set_rgb_gain(0x55, 0x4F , 0x65);	// Home - Sunny
+	//po8030_set_rgb_gain(0x5E, 0x4F , 0x5D);	// Home - Cloudy
 	// Contrast adjusted to the scene
 	po8030_set_contrast(20);
 
+	/*** DCMI CONFIGURATION ***/
 	// Double buffering enabled in order to process image while capturing another
 	dcmi_enable_double_buffering();
-
 	// Capture mode set to one shot
 	dcmi_set_capture_mode(CAPTURE_ONE_SHOT);
-
-	// Prepares DCMI units
+	// Prepares DCMI unit
 	dcmi_prepare();
 
 	/*** INFINITE LOOP ***/
 	while(1){
+		// Enters sleep mode if asked by another thread.
 		if(CaptureImage_MetaData.Sleep){
 			chSysLock();
 			CaptureImage_MetaData.Sleep = chThdSuspendS(&CaptureImage_MetaData.ThdReference);
@@ -185,7 +184,7 @@ static THD_FUNCTION(CaptureImage, arg){
 		wait_image_ready();
 
 		// Signals an image has been captured
-		chBSemSignal(&image_ready_sem);
+		chBSemSignal(&ImageReady_sem);
 	}
 	/*** END INFINITE LOOP ***/
 }
@@ -195,65 +194,65 @@ static THD_FUNCTION(CaptureImage, arg){
  * 			Sets the colors to RGB front LEDs.
  * 			Sets the colors to static variable ActualCell.
  */
-static THD_WORKING_AREA(waProcessImage, 256);
+static THD_WORKING_AREA(waProcessImage, 32);
 static THD_FUNCTION(ProcessImage, arg){
 	chRegSetThreadName(__FUNCTION__);
 	(void)arg;
 
 	/*** INTERNAL VARIABLES ***/
 
-	uint8_t *img_buff_ptr = NULL;
+	uint8_t *ImgBuff_ptr = NULL;
 
-	uint32_t val_red = 0;
-	uint32_t val_green = 0;
-	uint32_t val_blue = 0;
-	uint16_t max_val = 0;
+	uint32_t RedVal = 0;
+	uint32_t GreenVal = 0;
+	uint32_t BlueVal = 0;
+	uint16_t MaxVal = 0;
 	uint8_t Color = 0;
 
 	/*** INFINITE LOOP ***/
 	while(1){
 		// Waits until an image has been captured
-		chBSemWait(&image_ready_sem);
+		chBSemWait(&ImageReady_sem);
 
 		// Gets the pointer to the array filled with the last image in RGB565
-		img_buff_ptr = dcmi_get_last_image_ptr();
+		ImgBuff_ptr = dcmi_get_last_image_ptr();
 
 		// Resets values of last image
-		val_red = 0;
-		val_green = 0;
-		val_blue = 0;
+		RedVal = 0;
+		GreenVal = 0;
+		BlueVal = 0;
 		Color = 0;
 
 		// Extracts and adds all pixels values of one line, by color (format RGB565)
 		for(uint16_t i = 0 ; i < (2 * IMAGE_BUFFER_SIZE) ; i+=2){	// pixels are acquired on two bytes
-			val_red += (img_buff_ptr[i] & 0xF8) >> 2;				// red value scaled to green size
-			val_green += ((img_buff_ptr[i] & 0x07) << 3) +			// green value
-					((img_buff_ptr[i+1] & 0xE0) >> 5);
-			val_blue += (img_buff_ptr[i+1] & 0x1F) << 1;			// blue value scaled to green size
+			RedVal += (ImgBuff_ptr[i] & 0xF8) >> 2;				// red value scaled to green size
+			GreenVal += ((ImgBuff_ptr[i] & 0x07) << 3) +			// green value
+					((ImgBuff_ptr[i+1] & 0xE0) >> 5);
+			BlueVal += (ImgBuff_ptr[i+1] & 0x1F) << 1;			// blue value scaled to green size
 		}
 
 		// Checks for the maximum value of RGB
-		if(val_red >= val_green && val_red >= val_blue){
-			max_val = val_red;
-		}else if(val_green >= val_blue){
-			max_val = val_green;
+		if(RedVal >= GreenVal && RedVal >= BlueVal){
+			MaxVal = RedVal;
+		}else if(GreenVal >= BlueVal){
+			MaxVal = GreenVal;
 		}else{
-			max_val = val_blue;
+			MaxVal = BlueVal;
 		}
 
 		// Sets scale to percentage of maximum value
-		val_red = (val_red*100)/max_val;
-		val_green = (val_green*100)/max_val;
-		val_blue = (val_blue*100)/max_val;
+		RedVal = (RedVal*RGB_MAX)/MaxVal;
+		GreenVal = (GreenVal*RGB_MAX)/MaxVal;
+		BlueVal = (BlueVal*RGB_MAX)/MaxVal;
 
 		// Saves the colors to variable Color
-		if(val_red > COLOR_THRESHOLD){
+		if(RedVal > COLOR_THRESHOLD){
 			Color |= RED_B;
 		}
-		if(val_green > COLOR_THRESHOLD){
+		if(GreenVal > COLOR_THRESHOLD){
 			Color |= GREEN_B;
 		}
-		if(val_blue > COLOR_THRESHOLD){
+		if(BlueVal > COLOR_THRESHOLD){
 			Color |= BLUE_B;
 		}
 
@@ -262,11 +261,11 @@ static THD_FUNCTION(ProcessImage, arg){
 
 		// Sets camera output to RGB front LEDs
 		if(!CaptureImage_MetaData.Sleep){
-			set_rgb_led(LED2, val_red, val_green, val_blue);
-			set_rgb_led(LED8, val_red, val_green, val_blue);
+			set_rgb_led(LED2, RedVal, GreenVal, BlueVal);
+			set_rgb_led(LED8, RedVal, GreenVal, BlueVal);
 		}else{	// only once if thread CaptureImage went to sleep --> switches off the RGB LEDs
-			set_rgb_led(LED2, 0, 0, 0);
-			set_rgb_led(LED8, 0, 0, 0);
+			set_rgb_led(LED2, RGB_MIN, RGB_MIN, RGB_MIN);
+			set_rgb_led(LED8, RGB_MIN, RGB_MIN, RGB_MIN);
 		}
 	}
 	/*** END INFINITE LOOP ***/

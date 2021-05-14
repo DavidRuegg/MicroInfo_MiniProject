@@ -1,3 +1,17 @@
+/**
+ * @file	main.c
+ *
+ * @author	David 	RUEGG
+ * @author	Thibaut	STOLTZ
+ *
+ * @date	14.05.2021
+ *
+ * @brief	Solve a maze made of fixed cells dimensions.
+ * 			Based on e-puck robot and cells of size 115x115mm with right angle.
+ * 			Handle wall detection and color detection.
+ * 			Manage threads and actions depending on selector position.
+ */
+
 #include "hal.h"
 #include "ch.h"
 #include "memory_protection.h"
@@ -15,13 +29,14 @@
 #include <DataProcess.h>
 #include <SystemControl.h>
 
+
 /*** GLOBAL VARIABLES ***/
 messagebus_t bus;
 MUTEX_DECL(bus_lock);
 CONDVAR_DECL(bus_condvar);
 
 /*** EXTERN VARIABLES ***/
-extern binary_semaphore_t motor_ready_sem;
+extern binary_semaphore_t MotorReady_sem;
 extern thd_metadata_t ControlMotor_MetaData;
 extern thd_metadata_t GetProximity_MetaData;
 extern thd_metadata_t CaptureImage_MetaData;
@@ -29,10 +44,23 @@ extern thd_metadata_t CaptureImage_MetaData;
 
 /*** INTERNAL FUNCTIONS ***/
 
+/**
+ * @brief	Send a thread to sleep. Can be called from another thread.
+ * 			 The thread in question has to check his Sleep variable
+ * 			 before entering in sleep mode.
+ *
+ * @param	ThdMetaData		Variable containing thread metadata
+ */
 void make_thread_sleep(thd_metadata_t* ThdMetaData){
 	ThdMetaData->Sleep = SLEEP_MODE;
 }
 
+
+/**
+ * @brief	Wake a thread up.
+ *
+ * @param	ThdMetaData		Variable containing thread metadata
+ */
 void make_thread_wakeup(thd_metadata_t* ThdMetaData){
 	if(ThdMetaData->Sleep){
 		chSysLock();
@@ -41,6 +69,7 @@ void make_thread_wakeup(thd_metadata_t* ThdMetaData){
 	}
 }
 
+/*** MAIN ***/
 int main(void){
 	/*** INTERNAL VARIABLES ***/
 	uint8_t EPuckCell = 0;
@@ -81,10 +110,10 @@ int main(void){
 		 *		Default		: send own threads to sleep
 		 ***/
 		switch(get_selector()){
-		case POS_SEL_0:		// Selector = 0: maze solving with left wall follower algorithm.
+		case POS_SEL_0:	// Selector = 0: maze solving with left wall follower algorithm.
 			// Clears all LEDs
-			set_body_led(0);
-			set_front_led(0);
+			set_body_led(LED_OFF);
+			set_front_led(LED_OFF);
 			clear_leds();
 
 			// Wakes necessary threads up
@@ -113,7 +142,7 @@ int main(void){
 				switch (ExitStatus) {
 				case SEARCHING:
 					move(left_wall_follower(EPuckCell));
-					chBSemWait(&motor_ready_sem);
+					chBSemWait(&MotorReady_sem);
 					break;
 				case FOUND:
 					set_body_led(TOGGLE_LED);
@@ -127,13 +156,13 @@ int main(void){
 				}
 			}
 			break;
-		case POS_SEL_1:		// Selector = 1: maze solving with Pledge algorithm.
+		case POS_SEL_1:	// Selector = 1: maze solving with Pledge algorithm.
 			// Resets orientation so that Pledge algorithm is usable without a total reset
 			reset_orientation();
 
 			// Clears all LEDs
-			set_body_led(0);
-			set_front_led(0);
+			set_body_led(LED_OFF);
+			set_front_led(LED_OFF);
 			clear_leds();
 
 			// Wakes necessary threads up
@@ -162,7 +191,7 @@ int main(void){
 				switch (ExitStatus) {
 				case SEARCHING:
 					move(pledge_algorithm(EPuckCell));
-					chBSemWait(&motor_ready_sem);
+					chBSemWait(&MotorReady_sem);
 					break;
 				case FOUND:
 					set_body_led(TOGGLE_LED);
@@ -176,14 +205,14 @@ int main(void){
 				}
 			}
 			break;
-		case POS_SEL_2:		// Selector = 2: demonstration walls detection.
+		case POS_SEL_2:	// Selector = 2: demonstration walls detection.
 			// Sends unnecessary thread to sleep
 			make_thread_sleep(&ControlMotor_MetaData);
 			make_thread_sleep(&CaptureImage_MetaData);
 
 			// Clear all LEDs
-			set_body_led(0);
-			set_front_led(0);
+			set_body_led(LED_OFF);
+			set_front_led(LED_OFF);
 			clear_leds();
 
 			// Wakes necessary threads up
@@ -196,14 +225,14 @@ int main(void){
 				chThdYield();
 			}
 			break;
-		case POS_SEL_3:		// Selector = 3: demonstration colors detection.
+		case POS_SEL_3:	// Selector = 3: demonstration colors detection.
 			// Sends unnecessary thread to sleep
 			make_thread_sleep(&ControlMotor_MetaData);
 			make_thread_sleep(&GetProximity_MetaData);
 
 			// Clear all LEDs
-			set_body_led(0);
-			set_front_led(0);
+			set_body_led(LED_OFF);
+			set_front_led(LED_OFF);
 			clear_leds();
 
 			// Wakes necessary threads up
@@ -216,13 +245,13 @@ int main(void){
 				chThdYield();
 			}
 			break;
-		case POS_SEL_4:		// Selector = 4: walls detection and color detection.
+		case POS_SEL_4:	// Selector = 4: walls detection and color detection.
 			// Sends unnecessary thread to sleep
 			make_thread_sleep(&ControlMotor_MetaData);
 
 			// Clear body + front LEDs
-			set_body_led(0);
-			set_front_led(0);
+			set_body_led(LED_OFF);
+			set_front_led(LED_OFF);
 
 			// Wakes necessary threads up
 			make_thread_wakeup(&GetProximity_MetaData);
@@ -237,20 +266,24 @@ int main(void){
 			}
 			break;
 		default: 			// Default: send own threads to sleep
-			// Sends unnecessary thread to sleep
-			make_thread_sleep(&ControlMotor_MetaData);
-			make_thread_sleep(&GetProximity_MetaData);
-			make_thread_sleep(&CaptureImage_MetaData);
+			// Only once
+			do {
+				// Sends unnecessary thread to sleep
+				make_thread_sleep(&ControlMotor_MetaData);
+				make_thread_sleep(&GetProximity_MetaData);
+				make_thread_sleep(&CaptureImage_MetaData);
 
-			// Clears all LEDs
-			set_body_led(0);
-			set_front_led(0);
-			clear_leds();
+				// Clears all LEDs
+				set_body_led(LED_OFF);
+				set_front_led(LED_OFF);
+				clear_leds();
+			} while (FALSE);
 		}
 		chThdYield();
 	}
 	/*** END INFINITE LOOP ***/
 }
+/*** END MAIN ***/
 
 #define STACK_CHK_GUARD 0xe2dee396
 uintptr_t __stack_chk_guard = STACK_CHK_GUARD;
@@ -258,3 +291,4 @@ uintptr_t __stack_chk_guard = STACK_CHK_GUARD;
 void __stack_chk_fail(void){
 	chSysHalt("Stack smashing detected");
 }
+/*** END INTERNAL FUNCTIONS ***/

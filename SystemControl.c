@@ -1,51 +1,53 @@
-/*
- * SystemControl.c
+/**
+ * @file	SystemControl.c
  *
- *  Created on: 26 avr. 2021
- *      Author: druegg
+ * @author	David 	RUEGG
+ * @author	Thibaut	STOLTZ
+ *
+ * @date	14.05.2021
+ *
+ * @brief	Thread to control position in steps of an e-puck robot.
+ * 			Functions to drive the e-puck robot (turn, move forward).
+ * 			Global semaphore to advertise that the motors are ready for a new command.
  */
-
-#include <stdlib.h>
 
 #include <motors.h>
 
 #include <main.h>
 #include <SystemControl.h>
-#include <DataAcquisition.h>
-#include <DataProcess.h>
+
 
 /*** GLOBAL VARIABLES ***/
+BSEMAPHORE_DECL(MotorReady_sem, FALSE);
 thd_metadata_t ControlMotor_MetaData = {.Sleep = 0, .ThdReference = NULL};
-BSEMAPHORE_DECL(motor_ready_sem, FALSE);
 
 
 /*** STATIC VARIABLES ***/
-static int16_t position_to_reach = 0;			// in [steps]
-static uint8_t position_left_reached = 1;		// 1 == reached, 0 == not reached
-static uint8_t position_right_reached = 1;		// 1 == reached, 0 == not reached
-static int16_t nominal_speed = NOMINAL_SPEED;	// in [step/s]
-static int16_t speed_left = 0;					// in [step/s]
-static int16_t speed_right = 0;					// in [step/s]
+static uint8_t PositionLeft_Reached = 1;		// 1 == reached, 0 == not reached
+static uint8_t PositionRight_Reached = 1;		// 1 == reached, 0 == not reached
+static int16_t Position2Reach = 0;				// in [steps]
+static int16_t NominalSpeed = NOMINAL_SPEED;	// in [step/s]
+static int16_t SpeedLeft = 0;					// in [step/s]
+static int16_t SpeedRight = 0;					// in [step/s]
 
 /*** INTERNAL FUNCTIONCS ***/
 
 /**
  * @brief	Thread which controls if the positions has been reached by the motors.
- * 			Signals semaphore motor_ready_sem when positions are reached.
- * 			Sets speed consequently to static variables speed_left and speed_right.
+ * 			Signals semaphore MotorReady_sem when positions are reached.
+ * 			Sets speed consequently to static variables SpeedLeft and SpeedRight.
  */
-static THD_WORKING_AREA(waControlMotor, 256);
+static THD_WORKING_AREA(waControlMotor, 128);
 static THD_FUNCTION(ControlMotor, arg) {
 
 	chRegSetThreadName(__FUNCTION__);
 	(void)arg;
 
 	volatile systime_t time;
-	volatile int16_t position_right =0;
-	volatile int16_t position_left =0;
 
 	/*** INFINITE LOOP ***/
 	while(1){
+		// Enters sleep mode if asked by another thread.
 		if(ControlMotor_MetaData.Sleep){
 			chSysLock();
 			ControlMotor_MetaData.Sleep = chThdSuspendS(&ControlMotor_MetaData.ThdReference);
@@ -55,37 +57,35 @@ static THD_FUNCTION(ControlMotor, arg) {
 		time = chVTGetSystemTime();
 
 		// Checks if position left has been reached
-		if(!position_left_reached){
+		if(!PositionLeft_Reached){
 
 			// Action when position left has been reached
-			if(abs(left_motor_get_pos()) >= position_to_reach){
-				position_left = left_motor_get_pos();
-				position_left_reached = POSITION_REACHED;
-				speed_left = STOP_SPEED;
+			if(abs(left_motor_get_pos()) >= Position2Reach){
+				PositionLeft_Reached = POSITION_REACHED;
+				SpeedLeft = STOP_SPEED;
 			}
 
-			left_motor_set_speed(speed_left);
+			left_motor_set_speed(SpeedLeft);
 		}
 
 		// Checks if position right has been reached
-		if(!position_right_reached){
+		if(!PositionRight_Reached){
 
 			// Action when position right has been reached
-			if(abs(right_motor_get_pos()) >= position_to_reach){
-				position_right = right_motor_get_pos();
-				position_right_reached = POSITION_REACHED;
-				speed_right = STOP_SPEED;
+			if(abs(right_motor_get_pos()) >= Position2Reach){
+				PositionRight_Reached = POSITION_REACHED;
+				SpeedRight = STOP_SPEED;
 			}
 
-			right_motor_set_speed(speed_right);
+			right_motor_set_speed(SpeedRight);
 		}
 
 		// Signals semaphore when both positions have been reached
-		if(position_left_reached && position_right_reached){
-			chBSemSignal(&motor_ready_sem);
+		if(PositionLeft_Reached && PositionRight_Reached){
+			chBSemSignal(&MotorReady_sem);
 		}
 
-		// 100 Hz cycle
+		// 1 kHz cycle because at high speed, position has to be checked faster
 		chThdSleepUntilWindowed(time, time + MS2ST(1));
 	}
 	/*** END INFINITE LOOP ***/
@@ -99,66 +99,66 @@ void control_motor_start(void){
 	chThdCreateStatic(waControlMotor, sizeof(waControlMotor), NORMALPRIO+1, ControlMotor, NULL);
 }
 
-void correction_nominal_speed(int16_t correction){
-	nominal_speed += correction;
-	if(nominal_speed > SPEED_LIMIT_SUP){
-		nominal_speed = SPEED_LIMIT_SUP;
+void correction_nominal_speed(int16_t SpeedCorrection){
+	NominalSpeed += SpeedCorrection;
+	if(NominalSpeed > SPEED_LIMIT_SUP){
+		NominalSpeed = SPEED_LIMIT_SUP;
 	}
-	if(nominal_speed < SPEED_LIMIT_INF){
-		nominal_speed = SPEED_LIMIT_INF;
+	if(NominalSpeed < SPEED_LIMIT_INF){
+		NominalSpeed = SPEED_LIMIT_INF;
 	}
 }
 
-void turn(int16_t angle){
+void turn(int16_t AngleVal){
 	// Resets left and right motors position
 	left_motor_set_pos(0);
 	right_motor_set_pos(0);
 
 	// Sets position to reach
-	position_to_reach = abs(angle);
+	Position2Reach = abs(AngleVal);
 
 	// Resets position reached
-	position_left_reached = POSITION_NOT_REACHED;
-	position_right_reached = POSITION_NOT_REACHED;
+	PositionLeft_Reached = POSITION_NOT_REACHED;
+	PositionRight_Reached = POSITION_NOT_REACHED;
 
-	if(angle > 0){						// turn right
-		speed_left = nominal_speed;
-		speed_right = -nominal_speed;
+	if(AngleVal > 0){					// turn right
+		SpeedLeft = NominalSpeed;
+		SpeedRight = -NominalSpeed;
 	}else{								// turn left
-		speed_left = -nominal_speed;
-		speed_right = nominal_speed;
+		SpeedLeft = -NominalSpeed;
+		SpeedRight = NominalSpeed;
 	}
 }
 
-void go_next_cell(int16_t distance){
+void go_next_cell(int16_t DistanceVal){
 	// Resets left and right motors position
 	left_motor_set_pos(0);
 	right_motor_set_pos(0);
 
 	// Sets position to reach
-	position_to_reach = abs(distance);
+	Position2Reach = abs(DistanceVal);
 
 	// Resets position reached
-	position_left_reached = POSITION_NOT_REACHED;
-	position_right_reached = POSITION_NOT_REACHED;
+	PositionLeft_Reached = POSITION_NOT_REACHED;
+	PositionRight_Reached = POSITION_NOT_REACHED;
 
-	if(distance > 0){					// go forward
-		speed_left = nominal_speed;
-		speed_right = nominal_speed;
+	if(DistanceVal > 0){				// go forward
+		SpeedLeft = NominalSpeed;
+		SpeedRight = NominalSpeed;
 	}else{								// go backward
-		speed_left = -nominal_speed;
-		speed_right = -nominal_speed;
+		SpeedLeft = -NominalSpeed;
+		SpeedRight = -NominalSpeed;
 	}
 }
 
-void move(int16_t direction){
+void move(int16_t DirectionVal){
 	// Waits that the motors have reached their positions before a new command
-	chBSemWait(&motor_ready_sem);
+	chBSemWait(&MotorReady_sem);
 
 	// turn if necessary
-	if(!(direction == MOVE_FORWARD)){
-		turn(direction);
-		chBSemWait(&motor_ready_sem);
+	if(!(DirectionVal == MOVE_FORWARD)){
+		turn(DirectionVal);
+		chBSemWait(&MotorReady_sem);
 	}
 
 	// move to next cell
