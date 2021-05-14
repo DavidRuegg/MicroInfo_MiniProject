@@ -73,6 +73,7 @@ void make_thread_wakeup(thd_metadata_t* ThdMetaData){
 int main(void){
 	/*** INTERNAL VARIABLES ***/
 	uint8_t EPuckCell = 0;
+	uint8_t i = 0;
 	int8_t ExitStatus = SEARCHING;
 
 	/*** INITIALIZATION ***/
@@ -124,7 +125,7 @@ int main(void){
 			// Sleeps to be able to remove hands
 			chThdSleepMilliseconds(1500);
 
-			while(get_selector() == POS_SEL_0){
+			do{
 				// Updates the EPuckCell with the most recent one
 				EPuckCell = get_actual_cell();
 
@@ -154,7 +155,7 @@ int main(void){
 				default:
 					break;
 				}
-			}
+			}while(get_selector() == POS_SEL_0);
 			break;
 		case POS_SEL_1:	// Selector = 1: maze solving with Pledge algorithm.
 			// Resets orientation so that Pledge algorithm is usable without a total reset
@@ -173,7 +174,7 @@ int main(void){
 			// Sleeps to be able to remove hands
 			chThdSleepMilliseconds(1500);
 
-			while(get_selector() == POS_SEL_1){
+			do{
 				// Updates the EPuckCell with the most recent one
 				EPuckCell = get_actual_cell();
 
@@ -203,7 +204,7 @@ int main(void){
 				default:
 					break;
 				}
-			}
+			}while(get_selector() == POS_SEL_1);
 			break;
 		case POS_SEL_2:	// Selector = 2: demonstration walls detection.
 			// Sends unnecessary thread to sleep
@@ -218,12 +219,12 @@ int main(void){
 			// Wakes necessary threads up
 			make_thread_wakeup(&GetProximity_MetaData);
 
-			while(get_selector() == POS_SEL_2){
+			do{
 				// Set wall LEDs
 				EPuckCell = get_actual_cell();
 				set_wall_leds(EPuckCell);
 				chThdYield();
-			}
+			}while(get_selector() == POS_SEL_2);
 			break;
 		case POS_SEL_3:	// Selector = 3: demonstration colors detection.
 			// Sends unnecessary thread to sleep
@@ -238,12 +239,12 @@ int main(void){
 			// Wakes necessary threads up
 			make_thread_wakeup(&CaptureImage_MetaData);
 
-			while(get_selector() == POS_SEL_3){
+			do{
 				// Set floor LEDs
 				EPuckCell = get_actual_cell();
 				set_floor_leds(EPuckCell);
 				chThdYield();
-			}
+			}while(get_selector() == POS_SEL_3);
 			break;
 		case POS_SEL_4:	// Selector = 4: walls detection and color detection.
 			// Sends unnecessary thread to sleep
@@ -257,27 +258,38 @@ int main(void){
 			make_thread_wakeup(&GetProximity_MetaData);
 			make_thread_wakeup(&CaptureImage_MetaData);
 
-			while(get_selector() == POS_SEL_4){
+			do{
 				// Set wall + floor LEDs
 				EPuckCell = get_actual_cell();
 				set_wall_leds(EPuckCell);
 				set_floor_leds(EPuckCell);
 				chThdYield();
-			}
+			}while(get_selector() == POS_SEL_4);
 			break;
 		default: 			// Default: send own threads to sleep
-			// Only once
-			do {
-				// Sends unnecessary thread to sleep
-				make_thread_sleep(&ControlMotor_MetaData);
-				make_thread_sleep(&GetProximity_MetaData);
-				make_thread_sleep(&CaptureImage_MetaData);
+			 // in C, a label can only be followed by a statement and a declaration is not a statement
+			i = 0;
+			uint8_t s_val;
 
-				// Clears all LEDs
-				set_body_led(LED_OFF);
-				set_front_led(LED_OFF);
-				clear_leds();
-			} while (FALSE);
+			do{
+				s_val = get_selector();
+
+				// Only once
+				if(i == 0){
+					// Sends unnecessary thread to sleep
+					make_thread_sleep(&ControlMotor_MetaData);
+					make_thread_sleep(&GetProximity_MetaData);
+					make_thread_sleep(&CaptureImage_MetaData);
+
+					// Clears all LEDs
+					set_body_led(LED_OFF);
+					set_front_led(LED_OFF);
+					clear_leds();
+
+					++i;
+				}
+			}while((s_val != POS_SEL_0) && (s_val != POS_SEL_1) && (s_val != POS_SEL_2) && (s_val != POS_SEL_3) && (s_val != POS_SEL_4));
+			break;
 		}
 		chThdYield();
 	}
