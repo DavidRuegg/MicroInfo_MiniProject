@@ -22,7 +22,7 @@
 #define IR6 				5
 #define IR7 				6
 #define IR8 				7
-#define PROXIMITY_THRESHOLD 90		// experimental value
+#define PROXIMITY_THRESHOLD 120		// experimental value
 
 // Image define
 #define IMAGE_BUFFER_SIZE 	200		// size of a row [pxl]
