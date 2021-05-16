@@ -4,7 +4,7 @@
  * @author	David 	RUEGG
  * @author	Thibaut	STOLTZ
  *
- * @date	14.05.2021
+ * @date	16.05.2021
  *
  * @brief	Public prototypes of functions used to solve a maze and actions.
  */
@@ -97,8 +97,8 @@ void set_floor_leds(uint8_t Cell_Ref_EPuck);
 
 /**
  * @brief	Action on the e-puck according to color detected by the camera.
- * 				Red:	decrease speed
- * 				Green:	increase speed
+ * 				Red:	increase speed
+ * 				Green:	decrease speed
  * 				Blue:	spin on itself
  *
  * @param Cell_Ref_EPuck	Bits 0 to 3 are set to 1 if the corresponding

@@ -4,7 +4,7 @@
  * @author	David 	RUEGG
  * @author	Thibaut	STOLTZ
  *
- * @date	14.05.2021
+ * @date	16.05.2021
  *
  * @brief	Thread to acquire proximity data based on IR sensors.
  * 			Threads to acquire colors detection based on CMOS camera.
@@ -203,11 +203,11 @@ static THD_FUNCTION(ProcessImage, arg){
 
 	uint8_t *ImgBuff_ptr = NULL;
 
-	uint32_t RedVal = 0;
-	uint32_t GreenVal = 0;
-	uint32_t BlueVal = 0;
-	uint16_t MaxVal = 0;
-	uint8_t Color = 0;
+	uint8_t Color 		= 0;
+	uint16_t MaxVal 	= 0;
+	uint32_t RedVal 	= 0;
+	uint32_t GreenVal 	= 0;
+	uint32_t BlueVal 	= 0;
 
 	/*** INFINITE LOOP ***/
 	while(1){
@@ -218,10 +218,10 @@ static THD_FUNCTION(ProcessImage, arg){
 		ImgBuff_ptr = dcmi_get_last_image_ptr();
 
 		// Resets values of last image
-		RedVal = 0;
-		GreenVal = 0;
-		BlueVal = 0;
-		Color = 0;
+		RedVal 		= 0;
+		GreenVal 	= 0;
+		BlueVal 	= 0;
+		Color 		= 0;
 
 		// Extracts and adds all pixels values of one line, by color (format RGB565)
 		for(uint16_t i = 0 ; i < (2 * IMAGE_BUFFER_SIZE) ; i+=2){	// pixels are acquired on two bytes
@@ -256,8 +256,12 @@ static THD_FUNCTION(ProcessImage, arg){
 			Color |= BLUE_B;
 		}
 
-		// Transfers colors to static variable ActualCell and erases previous ones
+		/* Transfers the colors to a static variable, ActualCell, and erases the previous ones
+		 *  while in lock state so that colors aren't mixed with previous ones.
+		 */
+		chSysLock();
 		ActualCell = ((ActualCell & ~COLOR_B) | Color);
+		chSysUnlock();
 
 		// Sets camera output to RGB front LEDs
 		if(!CaptureImage_MetaData.Sleep){

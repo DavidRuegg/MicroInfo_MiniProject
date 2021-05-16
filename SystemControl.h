@@ -4,7 +4,7 @@
  * @author	David 	RUEGG
  * @author	Thibaut	STOLTZ
  *
- * @date	14.05.2021
+ * @date	16.05.2021
  *
  * @brief	Public prototypes of function to control movement of an e-puck robot.
  * 			Define for speed and fixed movements.
@@ -68,7 +68,7 @@ void turn(int16_t AngleVal);
  * 						 Positive value to go forward.
  * 						 Negative value to go backward.
  */
-void go_next_cell(int16_t DistanceVal);
+void move(int16_t DistanceVal);
 
 /**
  * @brief	Sets the position to reach for each motor at nominal speed,
@@ -80,6 +80,6 @@ void go_next_cell(int16_t DistanceVal);
  * 						 Negative to turn left then move forward.
  * 						 0 if only move forward.
  */
-void move(int16_t DirectionVal);
+void go_next_cell(int16_t DirectionVal);
 
 #endif /* SYSTEMCONTROL_H_ */

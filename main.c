@@ -4,7 +4,7 @@
  * @author	David 	RUEGG
  * @author	Thibaut	STOLTZ
  *
- * @date	14.05.2021
+ * @date	16.05.2021
  *
  * @brief	Solve a maze made of fixed cells dimensions.
  * 			Based on e-puck robot and cells of size 115x115mm with right angle.
@@ -73,7 +73,6 @@ void make_thread_wakeup(thd_metadata_t* ThdMetaData){
 int main(void){
 	/*** INTERNAL VARIABLES ***/
 	uint8_t EPuckCell = 0;
-	uint8_t i = 0;
 	int8_t ExitStatus = SEARCHING;
 
 	/*** INITIALIZATION ***/
@@ -122,17 +121,13 @@ int main(void){
 			make_thread_wakeup(&GetProximity_MetaData);
 			make_thread_wakeup(&CaptureImage_MetaData);
 
-			// Sleeps to be able to remove hands
-			chThdSleepMilliseconds(1500);
-
 			do{
 				// Updates the EPuckCell with the most recent one
 				EPuckCell = get_actual_cell();
 
-				// LEDs + Color action
+				// Sets LEDs
 				set_wall_leds(EPuckCell);
 				set_floor_leds(EPuckCell);
-				floor_color_action(EPuckCell);
 
 				/* Updates ExitStatus and searches for an exit
 				 *		SEARCHING: 	left wall follower algorithm.
@@ -142,7 +137,8 @@ int main(void){
 				check_exit(EPuckCell, &ExitStatus);
 				switch (ExitStatus) {
 				case SEARCHING:
-					move(left_wall_follower(EPuckCell));
+					floor_color_action(EPuckCell);
+					go_next_cell(left_wall_follower(EPuckCell));
 					chBSemWait(&MotorReady_sem);
 					break;
 				case FOUND:
@@ -157,6 +153,7 @@ int main(void){
 				}
 			}while(get_selector() == POS_SEL_0);
 			break;
+
 		case POS_SEL_1:	// Selector = 1: maze solving with Pledge algorithm.
 			// Resets orientation so that Pledge algorithm is usable without a total reset
 			reset_orientation();
@@ -171,17 +168,13 @@ int main(void){
 			make_thread_wakeup(&GetProximity_MetaData);
 			make_thread_wakeup(&CaptureImage_MetaData);
 
-			// Sleeps to be able to remove hands
-			chThdSleepMilliseconds(1500);
-
 			do{
 				// Updates the EPuckCell with the most recent one
 				EPuckCell = get_actual_cell();
 
-				// LEDs + Color action
+				// Sets LEDs
 				set_wall_leds(EPuckCell);
 				set_floor_leds(EPuckCell);
-				floor_color_action(EPuckCell);
 
 				/* Updates ExitStatus and searches for an exit
 				 *		SEARCHING: 	left wall follower algorithm.
@@ -191,7 +184,8 @@ int main(void){
 				check_exit(EPuckCell, &ExitStatus);
 				switch (ExitStatus) {
 				case SEARCHING:
-					move(pledge_algorithm(EPuckCell));
+					floor_color_action(EPuckCell);
+					go_next_cell(pledge_algorithm(EPuckCell));
 					chBSemWait(&MotorReady_sem);
 					break;
 				case FOUND:
@@ -206,6 +200,7 @@ int main(void){
 				}
 			}while(get_selector() == POS_SEL_1);
 			break;
+
 		case POS_SEL_2:	// Selector = 2: demonstration walls detection.
 			// Sends unnecessary thread to sleep
 			make_thread_sleep(&ControlMotor_MetaData);
@@ -226,6 +221,7 @@ int main(void){
 				chThdYield();
 			}while(get_selector() == POS_SEL_2);
 			break;
+
 		case POS_SEL_3:	// Selector = 3: demonstration colors detection.
 			// Sends unnecessary thread to sleep
 			make_thread_sleep(&ControlMotor_MetaData);
@@ -246,6 +242,7 @@ int main(void){
 				chThdYield();
 			}while(get_selector() == POS_SEL_3);
 			break;
+
 		case POS_SEL_4:	// Selector = 4: walls detection and color detection.
 			// Sends unnecessary thread to sleep
 			make_thread_sleep(&ControlMotor_MetaData);
@@ -266,32 +263,28 @@ int main(void){
 				chThdYield();
 			}while(get_selector() == POS_SEL_4);
 			break;
-		default: 			// Default: send own threads to sleep
-			 // in C, a label can only be followed by a statement and a declaration is not a statement
-			i = 0;
-			uint8_t s_val;
 
-			do{
-				s_val = get_selector();
+		default: 		// Default: send own threads to sleep
+			// Only once
+			if(	!ControlMotor_MetaData.Sleep ||
+					!GetProximity_MetaData.Sleep ||
+					!CaptureImage_MetaData.Sleep ){
 
-				// Only once
-				if(i == 0){
-					// Sends unnecessary thread to sleep
-					make_thread_sleep(&ControlMotor_MetaData);
-					make_thread_sleep(&GetProximity_MetaData);
-					make_thread_sleep(&CaptureImage_MetaData);
+				// Sends unnecessary thread to sleep
+				make_thread_sleep(&ControlMotor_MetaData);
+				make_thread_sleep(&GetProximity_MetaData);
+				make_thread_sleep(&CaptureImage_MetaData);
 
-					// Clears all LEDs
-					set_body_led(LED_OFF);
-					set_front_led(LED_OFF);
-					clear_leds();
-
-					++i;
-				}
-			}while((s_val != POS_SEL_0) && (s_val != POS_SEL_1) && (s_val != POS_SEL_2) && (s_val != POS_SEL_3) && (s_val != POS_SEL_4));
+				// Clears all LEDs
+				set_body_led(LED_OFF);
+				set_front_led(LED_OFF);
+				clear_leds();
+			}
 			break;
 		}
-		chThdYield();
+
+		// Sleeps to be able to remove hands before a switch of selector
+		chThdSleepMilliseconds(1500);
 	}
 	/*** END INFINITE LOOP ***/
 }

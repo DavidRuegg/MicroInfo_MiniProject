@@ -4,7 +4,7 @@
  * @author	David 	RUEGG
  * @author	Thibaut	STOLTZ
  *
- * @date	14.05.2021
+ * @date	16.05.2021
  *
  * @brief	Thread to control position in steps of an e-puck robot.
  * 			Functions to drive the e-puck robot (turn, move forward).
@@ -23,12 +23,12 @@ thd_metadata_t ControlMotor_MetaData = {.Sleep = 0, .ThdReference = NULL};
 
 
 /*** STATIC VARIABLES ***/
-static uint8_t PositionLeft_Reached = 1;		// 1 == reached, 0 == not reached
-static uint8_t PositionRight_Reached = 1;		// 1 == reached, 0 == not reached
-static int16_t Position2Reach = 0;				// in [steps]
+static uint8_t PositionLeft_Reached 	= 1;	// 1 == reached, 0 == not reached
+static uint8_t PositionRight_Reached 	= 1;	// 1 == reached, 0 == not reached
+static int16_t Position2Reach 			= 0;	// in [steps]
 static int16_t NominalSpeed = NOMINAL_SPEED;	// in [step/s]
-static int16_t SpeedLeft = 0;					// in [step/s]
-static int16_t SpeedRight = 0;					// in [step/s]
+static int16_t SpeedLeft 				= 0;	// in [step/s]
+static int16_t SpeedRight 				= 0;	// in [step/s]
 
 /*** INTERNAL FUNCTIONCS ***/
 
@@ -110,16 +110,15 @@ void correction_nominal_speed(int16_t SpeedCorrection){
 }
 
 void turn(int16_t AngleVal){
+	// Waits that the motors have reached their previous position before setting a new command.
+	chBSemWait(&MotorReady_sem);
+
 	// Resets left and right motors position
 	left_motor_set_pos(0);
 	right_motor_set_pos(0);
 
 	// Sets position to reach
 	Position2Reach = abs(AngleVal);
-
-	// Resets position reached
-	PositionLeft_Reached = POSITION_NOT_REACHED;
-	PositionRight_Reached = POSITION_NOT_REACHED;
 
 	if(AngleVal > 0){					// turn right
 		SpeedLeft = NominalSpeed;
@@ -128,19 +127,26 @@ void turn(int16_t AngleVal){
 		SpeedLeft = -NominalSpeed;
 		SpeedRight = NominalSpeed;
 	}
+
+	/* Resets position reached (condition for Thd ControlMotor),
+	 *  while in locked to start both motors at the same time
+	 */
+	chSysLock();
+	PositionLeft_Reached = POSITION_NOT_REACHED;
+	PositionRight_Reached = POSITION_NOT_REACHED;
+	chSysUnlock();
 }
 
-void go_next_cell(int16_t DistanceVal){
+void move(int16_t DistanceVal){
+	// Waits that the motors have reached their previous position before setting a new command.
+	chBSemWait(&MotorReady_sem);
+
 	// Resets left and right motors position
 	left_motor_set_pos(0);
 	right_motor_set_pos(0);
 
 	// Sets position to reach
 	Position2Reach = abs(DistanceVal);
-
-	// Resets position reached
-	PositionLeft_Reached = POSITION_NOT_REACHED;
-	PositionRight_Reached = POSITION_NOT_REACHED;
 
 	if(DistanceVal > 0){				// go forward
 		SpeedLeft = NominalSpeed;
@@ -149,20 +155,24 @@ void go_next_cell(int16_t DistanceVal){
 		SpeedLeft = -NominalSpeed;
 		SpeedRight = -NominalSpeed;
 	}
+
+	/* Resets position reached (condition for Thd ControlMotor),
+	 *  while in locked to start both motors at the same time
+	 */
+	chSysLock();
+	PositionLeft_Reached = POSITION_NOT_REACHED;
+	PositionRight_Reached = POSITION_NOT_REACHED;
+	chSysUnlock();
 }
 
-void move(int16_t DirectionVal){
-	// Waits that the motors have reached their positions before a new command
-	chBSemWait(&MotorReady_sem);
-
+void go_next_cell(int16_t DirectionVal){
 	// turn if necessary
 	if(!(DirectionVal == MOVE_FORWARD)){
 		turn(DirectionVal);
-		chBSemWait(&MotorReady_sem);
 	}
 
 	// move to next cell
-	go_next_cell(ONE_CELL);
+	move(ONE_CELL);
 }
 
 /*** END PUBLIC FUNCTIONCS ***/

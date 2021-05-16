@@ -4,7 +4,7 @@
  * @author	David 	RUEGG
  * @author	Thibaut	STOLTZ
  *
- * @date	14.05.2021
+ * @date	16.05.2021
  *
  * @brief	Algorithms to solve a maze (Pledge, Left wall follower).
  * 			Some actions depending on wall and color detections.
@@ -83,11 +83,11 @@ void set_floor_leds(uint8_t Cell_Ref_EPuck){
 
 void floor_color_action(uint8_t Cell_Ref_EPuck){
 	switch (Cell_Ref_EPuck & COLOR_B) {
-	case RED_B:		// Action: decrease speed
-		correction_nominal_speed(-CORRECTION_SPEED);
+	case RED_B:		// Action: increase speed
+		correction_nominal_speed(+CORRECTION_SPEED);
 		break;
-	case GREEN_B:	// Action: increase speed
-		correction_nominal_speed(CORRECTION_SPEED);
+	case GREEN_B:	// Action: decrease speed
+		correction_nominal_speed(-CORRECTION_SPEED);
 		break;
 	case BLUE_B:	// Action: spin on itself
 		turn(ONE_TURN);

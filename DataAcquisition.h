@@ -4,7 +4,7 @@
  * @author	David 	RUEGG
  * @author	Thibaut	STOLTZ
  *
- * @date	14.05.2021
+ * @date	16.05.2021
  *
  * @brief	Public prototypes of function for object and color detection.
  * 			Define for IR sensors and camera settings.
@@ -22,7 +22,7 @@
 #define IR6 				5
 #define IR7 				6
 #define IR8 				7
-#define PROXIMITY_THRESHOLD 140		// experimental value
+#define PROXIMITY_THRESHOLD 90		// experimental value
 
 // Image define
 #define IMAGE_BUFFER_SIZE 	200		// size of a row [pxl]
